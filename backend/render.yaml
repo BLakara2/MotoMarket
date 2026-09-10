@@ -8,8 +8,8 @@
 #   DATABASE_URL         URL PostgreSQL (Neon ou Supabase), ex :
 #                        postgresql://user:pass@host/db?sslmode=require
 #                        (Neon : utiliser la connexion "pooled" pour l'exécution)
-#   DIRECT_URL           URL PostgreSQL directe (SANS "-pooler") utilisée par
-#                        `prisma migrate deploy` pour créer/appliquer les migrations
+#   DIRECT_URL           URL PostgreSQL directe (SANS "-pooler") utilisée pour
+#                        appliquer les migrations manuellement (npx prisma migrate deploy)
 #   CORS_ORIGIN          https://<ton-app>.vercel.app
 #   JWT_SECRET           chaîne longue et aléatoire
 #   JWT_REFRESH_SECRET   chaîne longue et aléatoire
@@ -38,7 +38,10 @@ services:
     # installées. --include=dev les force à être présentes au moment du build.
     buildCommand: npm install --include=dev && npm run build && npx prisma generate
 
-    startCommand: npx prisma migrate deploy && node dist/server.js
+    # Les migrations sont appliquées en avance (localement via DIRECT_URL) :
+    # `prisma migrate deploy` au démarrage échoue sur Neon/PgBouncer (P1002,
+    # timeout du verrou advisory) → on lance directement le serveur.
+    startCommand: node dist/server.js
 
     # Health check : Render considère le service "live" quand /api/health répond
     healthCheckPath: /api/health
