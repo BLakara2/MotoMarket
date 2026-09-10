@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import { authMiddleware, optionalAuth } from '../middlewares/auth.middleware';
 import { uploadImages } from '../middlewares/upload.middleware';
-import { uploadListingImages, deleteListingImage } from '../controllers/listing.controller';
+import {
+  listListings,
+  getListingById,
+  uploadListingImages,
+  deleteListingImage,
+} from '../controllers/listing.controller';
 
 const router = Router();
 
-// TODO: implémenter les opérations CRUD des annonces
-router.get('/', optionalAuth, (_req, res) => {
-  res.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
-});
+router.get('/', optionalAuth, listListings);
 
-router.get('/:id', optionalAuth, (_req, res) => {
-  res.status(404).json({ message: 'Non implémenté' });
-});
+router.get('/:id', optionalAuth, getListingById);
 
 router.post('/', authMiddleware, (_req, res) => {
   res.status(201).json({ message: 'Non implémenté' });
