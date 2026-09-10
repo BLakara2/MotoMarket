@@ -89,6 +89,65 @@ npx prisma db seed
 
 ---
 
+## Déploiement gratuit (100 % sans dépense)
+
+Architecture cible :
+
+| Couche | Service gratuit | Fichier de config |
+|--------|-----------------|-------------------|
+| Frontend (React) | Vercel ou Cloudflare Pages | `frontend/vercel.json` |
+| Backend (Express) | Render (tier free) | `backend/render.yaml` |
+| PostgreSQL | Neon ou Supabase | — |
+| Uploads (photos) | Cloudflare R2 (10 Go) | variables `STORAGE_*` |
+
+### 1. Base de données → Neon (ou Supabase)
+
+1. Créer un compte sur [neon.tech](https://neon.tech) → **Create a project**.
+2. Copier l'URL de connexion (PostgreSQL), elle ressemble à :
+   `postgresql://user:pass@ep-xxx.region.aws.neon.tech/motomarket?sslmode=require`
+3. Garder cette URL : elle servira de `DATABASE_URL`.
+
+### 2. Backend → Render
+
+1. Pousser le code sur GitHub (branch `develop`).
+2. Sur [render.com](https://render.com) → **New → Blueprint** → choisir le repo.
+   Render lit `backend/render.yaml` automatiquement.
+3. Renseigner les variables secrètes (`sync: false`) dans le dashboard :
+   - `DATABASE_URL` : l'URL Neon de l'étape 1
+   - `CORS_ORIGIN` : l'URL du frontend, ex `https://motomarket.vercel.app`
+   - `STORAGE_ENDPOINT` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` (R2/B2)
+4. Au premier déploiement, Render exécute :
+   `npx prisma migrate deploy && node dist/server.js`
+   → la migration initiale (`prisma/migrations/20260910000000_init`) crée le schéma.
+
+> Sur le tier gratuit, le service passe en veille après 15 min sans trafic
+> (le 1er appel peut prendre ~30 s à se réveiller).
+
+### 3. Frontend → Vercel
+
+1. Sur [vercel.com](https://vercel.com) → **Add New → Project** → importer le repo.
+2. Framework preset : **Vite** ; root directory : `frontend`.
+3. Variables d'environnement : `VITE_API_URL` = URL du backend Render, ex
+   `https://motomarket-api.onrender.com/api`.
+4. Deploy. `vercel.json` gère le rewrites SPA (`/listings/:id` etc.).
+
+### 4. Uploads → Cloudflare R2 (recommandé)
+
+Le disque de Render étant éphémère, les photos doivent aller dans un bucket S3 :
+
+1. Compte [Cloudflare](https://dash.cloudflare.com) → **R2** → **Create bucket**.
+2. **Manage R2 API Tokens** → créer un token (lecture/écriture).
+3. Renseigner `STORAGE_ENDPOINT` (ex `https://<account_id>.r2.cloudflarestorage.com`),
+   `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`.
+4. Le frontend sert les images via les URLs publiques R2 (ou un dev server sur le bucket).
+
+### Vérification
+
+- Health check API : `GET https://<api>.onrender.com/api/health`
+- App frontend : `https://<app>.vercel.app`
+
+---
+
 ## Structure du projet
 
 ```

@@ -1,0 +1,60 @@
+# ═══════════════════════════════════════════════════════════════════════
+# MotoMarket - Déploiement Backend sur Render (tier gratuit)
+# ═══════════════════════════════════════════════════════════════════════
+# Usage : importer ce fichier dans le dashboard Render (New > Blueprint),
+# ou coller son contenu dans l'onglet "Env" du service.
+#
+# Variables requises à définir dans le dashboard Render :
+#   DATABASE_URL         URL PostgreSQL (Neon ou Supabase), ex :
+#                        postgresql://user:pass@host/db?sslmode=require
+#   CORS_ORIGIN          https://<ton-app>.vercel.app
+#   JWT_SECRET           chaîne longue et aléatoire
+#   JWT_REFRESH_SECRET   chaîne longue et aléatoire
+#   STORAGE_ENDPOINT     endpoint S3 (Cloudflare R2 / Backblaze B2)
+#   STORAGE_BUCKET       nom du bucket
+#   STORAGE_ACCESS_KEY   clé d'accès R2/B2
+#   STORAGE_SECRET_KEY   clé secrète R2/B2
+#
+# Optionnelles :
+#   PORT                 (fourni automatiquement par Render)
+#   NODE_ENV             production
+#   PAYMENT_API_KEY      / PAYMENT_SECRET
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+  - type: web
+    name: motomarket-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: backend
+
+    buildCommand: npm install && npm run build && npx prisma generate
+
+    startCommand: npx prisma migrate deploy && node dist/server.js
+
+    # Health check : Render considère le service "live" quand /api/health répond
+    healthCheckPath: /api/health
+
+    # Le disque est éphémère : déclarer ici uniquement si besoin d'un espace
+    # persistant (conseillé : utiliser un bucket S3 pour les uploads).
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://motomarket.vercel.app
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: STORAGE_ENDPOINT
+        sync: false
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: STORAGE_ACCESS_KEY
+        sync: false
+      - key: STORAGE_SECRET_KEY
+        sync: false
