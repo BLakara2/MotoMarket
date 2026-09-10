@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Typography, Box, Grid, Chip, Button, Divider, Paper } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import {
   LocalGasStation as FuelIcon,
   Settings as TransmissionIcon,
 } from '@mui/icons-material';
-import api from '../../../services/api';
+import api, { getFileUrl } from '../../../services/api';
 import Loading from '../../../components/common/Loading';
 import ErrorMessage from '../../../components/common/ErrorMessage';
 import type { Listing } from '../../../types';
@@ -22,6 +23,11 @@ function formatPrice(price: number): string {
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [selectedImg, setSelectedImg] = useState(0);
+
+  useEffect(() => {
+    setSelectedImg(0);
+  }, [id]);
 
   const { data: listing, isLoading, error } = useQuery({
     queryKey: ['listing', id],
@@ -36,38 +42,65 @@ export default function ListingDetailPage() {
   if (error) return <ErrorMessage />;
   if (!listing) return <ErrorMessage message="Annonce non trouvée" />;
 
+  const images = listing.images ?? [];
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Grid container spacing={4}>
         {/* Images */}
         <Grid size={{ xs: 12, md: 8 }}>
-          <Box
-            sx={{
-              width: '100%',
-              height: 400,
-              bgcolor: 'grey.200',
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Typography color="text.secondary">Photo principale</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, overflowX: 'auto' }}>
-            {listing.images.map((img) => (
+          {images.length > 0 ? (
+            <>
               <Box
-                key={img.id}
+                component="img"
+                src={getFileUrl(images[selectedImg].url)}
+                alt={listing.title}
                 sx={{
-                  width: 80,
-                  height: 60,
-                  bgcolor: 'grey.300',
-                  borderRadius: 1,
-                  flexShrink: 0,
+                  width: '100%',
+                  height: 400,
+                  borderRadius: 2,
+                  objectFit: 'cover',
+                  bgcolor: 'grey.200',
                 }}
               />
-            ))}
-          </Box>
+              {images.length > 1 && (
+                <Box sx={{ display: 'flex', gap: 1, mt: 2, overflowX: 'auto' }}>
+                  {images.map((img, idx) => (
+                    <Box
+                      key={img.id}
+                      component="img"
+                      src={getFileUrl(img.url)}
+                      alt=""
+                      onClick={() => setSelectedImg(idx)}
+                      sx={{
+                        width: 80,
+                        height: 60,
+                        borderRadius: 1,
+                        flexShrink: 0,
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                        border: idx === selectedImg ? '2px solid primary.main' : '2px solid transparent',
+                        opacity: idx === selectedImg ? 1 : 0.6,
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </>
+          ) : (
+            <Box
+              sx={{
+                width: '100%',
+                height: 400,
+                bgcolor: 'grey.200',
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography color="text.secondary">Aucune photo</Typography>
+            </Box>
+          )}
         </Grid>
 
         {/* Infos */}
