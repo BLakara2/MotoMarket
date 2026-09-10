@@ -1,0 +1,2437 @@
+openapi: 3.0.3
+info:
+  title: MotoMarket API
+  description: |
+    API REST pour la marketplace MotoMarket - Vente et achat de motos.
+    
+    ## Authentification
+    La plupart des routes nécessitent un token JWT dans le header `Authorization: Bearer <token>`.
+    
+    ## Pagination
+    Les listes retournent un objet paginé avec `data`, `page`, `limit`, `total`, `totalPages`.
+    
+    ## Upload Photos
+    Utiliser `multipart/form-data` pour les uploads. Formats acceptés: JPG, JPEG, PNG, WebP.
+    Taille max configurable côté serveur.
+  version: 1.0.0
+  contact:
+    name: MotoMarket
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000/api
+    description: Développement local
+  - url: https://api.motomarket.mg/api
+    description: Production
+
+tags:
+  - name: Auth
+    description: Inscription, connexion, token
+  - name: Motorcycles
+    description: CRUD annonces motos
+  - name: Favorites
+    description: Gestion des favoris
+  - name: Users
+    description: Profils utilisateurs
+  - name: Conversations
+    description: Messagerie entre acheteur et vendeur
+  - name: Reviews
+    description: Évaluations vendeurs
+  - name: Reports
+    description: Signalements
+  - name: Payments
+    description: Paiements et abonnements
+  - name: Admin
+    description: Routes d'administration
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Enums ──
+    UserRole:
+      type: string
+      enum: [USER, PRO, ADMIN]
+
+    MotorcycleStatus:
+      type: string
+      enum: [DRAFT, PENDING_REVIEW, ACTIVE, SOLD, PAUSED, EXPIRED, REJECTED, DELETED]
+
+    MotorcycleType:
+      type: string
+      enum: [CROSS, ROUTE, ROADSTER, SCOOTER,Trail, CUSTOM, AUTRE]
+
+    FuelType:
+      type: string
+      enum: [ESSENCE, DIELECTRIQUE, HYBRIDE, ELECTRIQUE]
+
+    TransmissionType:
+      type: string
+      enum: [MANUELLE, AUTOMATIQUE, SEMI_AUTO]
+
+    ConditionType:
+      type: string
+      enum: [NEUF, TRES_BON, BON, USAGE, A_REFORMER]
+
+    SellerType:
+      type: string
+      enum: [INDIVIDUAL, PROFESSIONAL]
+
+    VerificationStatus:
+      type: string
+      enum: [NOT_REQUESTED, PENDING, VERIFIED, REJECTED]
+
+    ReportReason:
+      type: string
+      enum: [FRAUD, FAKE_LISTING, MISLEADING_PRICE, NON_EXISTENT, SUSPICIOUS_SELLER, FORBIDDEN_CONTENT, OTHER]
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, COMPLETED, FAILED, REFUNDED]
+
+    BoostStatus:
+      type: string
+      enum: [ACTIVE, EXPIRED, CANCELLED]
+
+    # ── Pagination ──
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 250
+        totalPages:
+          type: integer
+          example: 13
+
+    # ── Auth ──
+    RegisterRequest:
+      type: object
+      required: [firstName, lastName, email, password]
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "Jean"
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "Rakoto"
+        email:
+          type: string
+          format: email
+          example: "jean@example.com"
+        phone:
+          type: string
+          example: "+261340000000"
+        password:
+          type: string
+          minLength: 8
+          example: "SecureP@ss123"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+
+    TokenRefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    # ── User ──
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        avatar:
+          type: string
+          nullable: true
+        isPhoneVerified:
+          type: boolean
+        isEmailVerified:
+          type: boolean
+        isVerifiedSeller:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    UserPublic:
+      type: object
+      description: Profil public (pas d'infos sensibles)
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        sellerProfile:
+          $ref: '#/components/schemas/SellerProfile'
+        averageRating:
+          type: number
+          format: float
+        totalSales:
+          type: integer
+        activeListingsCount:
+          type: integer
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+        phone:
+          type: string
+        avatar:
+          type: string
+
+    # ── Seller Profile ──
+    SellerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/SellerType'
+        businessName:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        logo:
+          type: string
+          nullable: true
+        city:
+          type: string
+        district:
+          type: string
+          nullable: true
+
+    # ── Brand / Model ──
+    Brand:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        logo:
+          type: string
+          nullable: true
+        modelsCount:
+          type: integer
+
+    MotorcycleModel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        brandId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          $ref: '#/components/schemas/Brand'
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+
+    # ── Motorcycle ──
+    Motorcycle:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        brandId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+          description: "Prix en Ariary (MGA)"
+        isPriceNegotiable:
+          type: boolean
+        year:
+          type: integer
+        mileage:
+          type: integer
+          description: "Kilométrage en km"
+        engineCc:
+          type: integer
+        type:
+          $ref: '#/components/schemas/MotorcycleType'
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        district:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MotorcycleStatus'
+        isFeatured:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/MotorcycleImage'
+        brand:
+          $ref: '#/components/schemas/Brand'
+        model:
+          $ref: '#/components/schemas/MotorcycleModel'
+        category:
+          $ref: '#/components/schemas/Category'
+        seller:
+          $ref: '#/components/schemas/SellerSummary'
+        maintenanceInfo:
+          type: string
+          nullable: true
+        papersInfo:
+          type: string
+          nullable: true
+        modifications:
+          type: string
+          nullable: true
+        favoritesCount:
+          type: integer
+        viewsCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MotorcycleSummary:
+      type: object
+      description: Version allégée pour les listes
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        price:
+          type: integer
+        year:
+          type: integer
+        mileage:
+          type: integer
+        engineCc:
+          type: integer
+        city:
+          type: string
+        status:
+          $ref: '#/components/schemas/MotorcycleStatus'
+        isFeatured:
+          type: boolean
+        primaryImage:
+          $ref: '#/components/schemas/MotorcycleImage'
+        brand:
+          $ref: '#/components/schemas/Brand'
+        model:
+          $ref: '#/components/schemas/MotorcycleModel'
+        seller:
+          $ref: '#/components/schemas/SellerSummary'
+        createdAt:
+          type: string
+          format: date-time
+
+    SellerSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+        isVerifiedSeller:
+          type: boolean
+        sellerType:
+          $ref: '#/components/schemas/SellerType'
+        businessName:
+          type: string
+          nullable: true
+        averageRating:
+          type: number
+          format: float
+
+    MotorcycleCreateRequest:
+      type: object
+      required: [brandId, modelId, title, description, price, year, mileage, engineCc, type, fuel, transmission, condition, city]
+      properties:
+        brandId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 20
+          maxLength: 5000
+        price:
+          type: integer
+          minimum: 0
+        isPriceNegotiable:
+          type: boolean
+          default: false
+        year:
+          type: integer
+          minimum: 1950
+          maximum: 2030
+        mileage:
+          type: integer
+          minimum: 0
+        engineCc:
+          type: integer
+          minimum: 50
+          maximum: 2000
+        type:
+          $ref: '#/components/schemas/MotorcycleType'
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        district:
+          type: string
+          nullable: true
+        maintenanceInfo:
+          type: string
+          nullable: true
+        papersInfo:
+          type: string
+          nullable: true
+        modifications:
+          type: string
+          nullable: true
+
+    MotorcycleUpdateRequest:
+      type: object
+      description: Tous les champs sont optionnels (PATCH partiel)
+      properties:
+        brandId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 20
+          maxLength: 5000
+        price:
+          type: integer
+          minimum: 0
+        isPriceNegotiable:
+          type: boolean
+        year:
+          type: integer
+        mileage:
+          type: integer
+        engineCc:
+          type: integer
+        type:
+          $ref: '#/components/schemas/MotorcycleType'
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        district:
+          type: string
+        maintenanceInfo:
+          type: string
+        papersInfo:
+          type: string
+        modifications:
+          type: string
+
+    StatusUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/MotorcycleStatus'
+
+    # ── Images ──
+    MotorcycleImage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        position:
+          type: integer
+        isPrimary:
+          type: boolean
+
+    ImageUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        position:
+          type: integer
+        isPrimary:
+          type: boolean
+
+    # ── Favorites ──
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        motorcycleId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        motorcycle:
+          $ref: '#/components/schemas/MotorcycleSummary'
+
+    # ── Conversations / Messages ──
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        motorcycleId:
+          type: string
+          format: uuid
+        buyerId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        motorcycle:
+          $ref: '#/components/schemas/MotorcycleSummary'
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+        unreadCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationCreateRequest:
+      type: object
+      required: [motorcycleId, sellerId, content]
+      properties:
+        motorcycleId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    MessageSendRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    # ── Reviews ──
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reviewerId:
+          type: string
+          format: uuid
+        sellerId:
+          type: string
+          format: uuid
+        motorcycleId:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, HIDDEN, DELETED]
+        reviewer:
+          $ref: '#/components/schemas/UserPublic'
+        createdAt:
+          type: string
+          format: date-time
+
+    ReviewCreateRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 1000
+          nullable: true
+        motorcycleId:
+          type: string
+          format: uuid
+          description: "ID de la moto concernée par la transaction"
+
+    # ── Reports ──
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reporterId:
+          type: string
+          format: uuid
+        motorcycleId:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/ReportReason'
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, REVIEWED, RESOLVED, DISMISSED]
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReportCreateRequest:
+      type: object
+      required: [motorcycleId, reason]
+      properties:
+        motorcycleId:
+          type: string
+          format: uuid
+        reason:
+          $ref: '#/components/schemas/ReportReason'
+        description:
+          type: string
+          maxLength: 2000
+          nullable: true
+
+    # ── Payments ──
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [BOOST, SUBSCRIPTION]
+        amount:
+          type: integer
+        currency:
+          type: string
+          example: "MGA"
+        provider:
+          type: string
+        providerReference:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentCreateRequest:
+      type: object
+      required: [type, amount]
+      properties:
+        type:
+          type: string
+          enum: [BOOST, SUBSCRIPTION]
+        amount:
+          type: integer
+          minimum: 1
+        currency:
+          type: string
+          default: "MGA"
+        provider:
+          type: string
+          example: "orange_money"
+        metadata:
+          type: object
+          description: "Données supplémentaires (planId, boostPlanId, etc.)"
+          additionalProperties: true
+
+    WebhookRequest:
+      type: object
+      description: "Payload du provider de paiement (adapté par provider)"
+      type: object
+      properties:
+        event:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+
+    # ── Boost ──
+    BoostPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        durationDays:
+          type: integer
+        price:
+          type: integer
+        isActive:
+          type: boolean
+
+    Boost:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        motorcycleId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        plan:
+          $ref: '#/components/schemas/BoostPlan'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/BoostStatus'
+
+    # ── Subscriptions ──
+    SubscriptionPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        price:
+          type: integer
+        durationDays:
+          type: integer
+        maxActiveListings:
+          type: integer
+        maxBoosts:
+          type: integer
+        features:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        plan:
+          $ref: '#/components/schemas/SubscriptionPlan'
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [ACTIVE, EXPIRED, CANCELLED]
+
+    # ── Admin ──
+    AdminDashboard:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeListings:
+          type: integer
+        soldMotorcycles:
+          type: integer
+        pendingReports:
+          type: integer
+        totalRevenue:
+          type: integer
+        newUsersThisMonth:
+          type: integer
+        newListingsThisMonth:
+          type: integer
+
+    AdminUserList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    # ── Errors ──
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    # ── Success ──
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        enum: [relevance, newest, price_asc, price_desc, mileage_asc, year_desc]
+        default: relevance
+
+paths:
+  # ═══════════════════════════════════════════════
+  # AUTH
+  # ═══════════════════════════════════════════════
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Créer un compte
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Compte créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email déjà utilisé
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Se connecter
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Identifiants incorrects
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rafraîchir le token d'accès
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+      responses:
+        '200':
+          description: Nouveau token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Refresh token invalide ou expiré
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Déconnexion
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Déconnecté
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Profil de l'utilisateur connecté
+      operationId: getMe
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Non authentifié
+
+  # ═══════════════════════════════════════════════
+  # MOTORCYCLES
+  # ═══════════════════════════════════════════════
+  /motorcycles:
+    get:
+      tags: [Motorcycles]
+      summary: Liste des annonces (recherche + filtres)
+      operationId: listMotorcycles
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortParam'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: "Recherche texte libre"
+        - name: brandId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: modelId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: minPrice
+          in: query
+          schema:
+            type: integer
+        - name: maxPrice
+          in: query
+          schema:
+            type: integer
+        - name: minYear
+          in: query
+          schema:
+            type: integer
+        - name: maxYear
+          in: query
+          schema:
+            type: integer
+        - name: maxMileage
+          in: query
+          schema:
+            type: integer
+        - name: engineCc
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/MotorcycleType'
+        - name: fuel
+          in: query
+          schema:
+            $ref: '#/components/schemas/FuelType'
+        - name: transmission
+          in: query
+          schema:
+            $ref: '#/components/schemas/TransmissionType'
+        - name: condition
+          in: query
+          schema:
+            $ref: '#/components/schemas/ConditionType'
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: sellerType
+          in: query
+          schema:
+            type: string
+            enum: [INDIVIDUAL, PROFESSIONAL]
+        - name: verifiedSeller
+          in: query
+          schema:
+            type: boolean
+        - name: isFeatured
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Liste paginée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MotorcycleSummary'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      tags: [Motorcycles]
+      summary: Publier une annonce
+      operationId: createMotorcycle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotorcycleCreateRequest'
+      responses:
+        '201':
+          description: Annonce créée (status DRAFT ou PENDING_REVIEW)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Motorcycle'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  /motorcycles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags: [Motorcycles]
+      summary: Détail d'une annonce
+      operationId: getMotorcycle
+      responses:
+        '200':
+          description: Détail complet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Motorcycle'
+        '404':
+          description: Annonce non trouvée
+
+    put:
+      tags: [Motorcycles]
+      summary: Modifier une annonce
+      operationId: updateMotorcycle
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MotorcycleUpdateRequest'
+      responses:
+        '200':
+          description: Annonce modifiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Motorcycle'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+        '403':
+          description: Pas le propriétaire
+        '404':
+          description: Annonce non trouvée
+
+    delete:
+      tags: [Motorcycles]
+      summary: Supprimer une annonce
+      operationId: deleteMotorcycle
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Supprimée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Pas le propriétaire
+        '404':
+          description: Annonce non trouvée
+
+  /motorcycles/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Motorcycles]
+      summary: Changer le statut d'une annonce
+      operationId: updateMotorcycleStatus
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdateRequest'
+      responses:
+        '200':
+          description: Statut mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Motorcycle'
+        '400':
+          description: Transition de statut invalide
+        '403':
+          description: Non autorisé
+
+  /motorcycles/{id}/images:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Motorcycles]
+      summary: Ajouter des photos
+      operationId: uploadImages
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [images]
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  minItems: 1
+                  maxItems: 15
+                  description: "Fichiers JPG, JPEG, PNG ou WebP"
+      responses:
+        '201':
+          description: Photos uploadées
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImageUploadResponse'
+        '400':
+          description: Fichier invalide ou trop gros
+        '403':
+          description: Pas le propriétaire
+
+  /motorcycles/{id}/images/{imageId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: imageId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags: [Motorcycles]
+      summary: Supprimer une photo
+      operationId: deleteImage
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Photo supprimée
+        '403':
+          description: Pas le propriétaire
+
+  # ═══════════════════════════════════════════════
+  # FAVORITES
+  # ═══════════════════════════════════════════════
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: Mes favoris
+      operationId: getFavorites
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Liste des favoris
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Favorite'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Non authentifié
+
+  /favorites/{motorcycleId}:
+    parameters:
+      - name: motorcycleId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Favorites]
+      summary: Ajouter aux favoris
+      operationId: addFavorite
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Ajouté
+        '401':
+          description: Non authentifié
+        '409':
+          description: Déjà en favori
+
+    delete:
+      tags: [Favorites]
+      summary: Retirer des favoris
+      operationId: removeFavorite
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Retiré
+        '401':
+          description: Non authentifié
+        '404':
+          description: Favori non trouvé
+
+  # ═══════════════════════════════════════════════
+  # USERS
+  # ═══════════════════════════════════════════════
+  /users/me:
+    put:
+      tags: [Users]
+      summary: Modifier mon profil
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Users]
+      summary: Profil public d'un vendeur
+      operationId: getUserPublic
+      responses:
+        '200':
+          description: Profil public
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '404':
+          description: Utilisateur non trouvé
+
+  # ═══════════════════════════════════════════════
+  # CONVERSATIONS / MESSAGES
+  # ═══════════════════════════════════════════════
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: Mes conversations
+      operationId: listConversations
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Liste des conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Non authentifié
+
+    post:
+      tags: [Conversations]
+      summary: Démarrer une conversation
+      operationId: createConversation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+      responses:
+        '201':
+          description: Conversation créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  /conversations/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Conversations]
+      summary: Messages d'une conversation
+      operationId: getConversation
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Pas participant à la conversation
+
+  /conversations/{id}/messages:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Conversations]
+      summary: Envoyer un message
+      operationId: sendMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageSendRequest'
+      responses:
+        '201':
+          description: Message envoyé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Pas participant à la conversation
+
+  /messages/{id}/read:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Conversations]
+      summary: Marquer un message comme lu
+      operationId: markAsRead
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Message marqué lu
+        '401':
+          description: Non authentifié
+
+  # ═══════════════════════════════════════════════
+  # REVIEWS
+  # ═══════════════════════════════════════════════
+  /sellers/{sellerId}/reviews:
+    parameters:
+      - name: sellerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Reviews]
+      summary: Avis d'un vendeur
+      operationId: getSellerReviews
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Liste des avis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Review'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  averageRating:
+                    type: number
+                    format: float
+
+    post:
+      tags: [Reviews]
+      summary: Laisser un avis
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewCreateRequest'
+      responses:
+        '201':
+          description: Avis créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '400':
+          description: Données invalides ou déjà noté
+        '401':
+          description: Non authentifié
+
+  # ═══════════════════════════════════════════════
+  # REPORTS
+  # ═══════════════════════════════════════════════
+  /reports:
+    post:
+      tags: [Reports]
+      summary: Signaler une annonce
+      operationId: createReport
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreateRequest'
+      responses:
+        '201':
+          description: Signalement créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  # ═══════════════════════════════════════════════
+  # BRANDS / MODELS / CATEGORIES
+  # ═══════════════════════════════════════════════
+  /brands:
+    get:
+      tags: [Motorcycles]
+      summary: Liste des marques
+      operationId: listBrands
+      responses:
+        '200':
+          description: Marques
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+
+  /brands/{brandId}/models:
+    parameters:
+      - name: brandId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Motorcycles]
+      summary: Modèles d'une marque
+      operationId: listModelsByBrand
+      responses:
+        '200':
+          description: Modèles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MotorcycleModel'
+
+  /categories:
+    get:
+      tags: [Motorcycles]
+      summary: Liste des catégories
+      operationId: listCategories
+      responses:
+        '200':
+          description: Catégories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  # ═══════════════════════════════════════════════
+  # PAYMENTS
+  # ═══════════════════════════════════════════════
+  /payments/create:
+    post:
+      tags: [Payments]
+      summary: Initier un paiement
+      operationId: createPayment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+      responses:
+        '201':
+          description: Paiement initié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  /payments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Payments]
+      summary: Détail d'un paiement
+      operationId: getPayment
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Détail du paiement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '401':
+          description: Non authentifié
+        '403':
+          description: Pas le propriétaire
+
+  /payments/webhook:
+    post:
+      tags: [Payments]
+      summary: Webhook provider de paiement
+      operationId: paymentWebhook
+      description: "Endpoint回调 - ne nécessite pas d'auth JWT mais doit être validé via signature du provider"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRequest'
+      responses:
+        '200':
+          description: Webhook traité
+        '400':
+          description: Signature invalide
+
+  # ═══════════════════════════════════════════════
+  # BOOST
+  # ═══════════════════════════════════════════════
+  /boosts/plans:
+    get:
+      tags: [Payments]
+      summary: Plans de boost disponibles
+      operationId: listBoostPlans
+      responses:
+        '200':
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BoostPlan'
+
+  /boosts:
+    post:
+      tags: [Payments]
+      summary: Booster une annonce
+      operationId: createBoost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motorcycleId, planId]
+              properties:
+                motorcycleId:
+                  type: string
+                  format: uuid
+                planId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Boost créé (redirige vers paiement si nécessaire)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Boost'
+        '400':
+          description: Données invalides
+        '401':
+          description: Non authentifié
+
+  # ═══════════════════════════════════════════════
+  # SUBSCRIPTIONS
+  # ═══════════════════════════════════════════════
+  /subscriptions/plans:
+    get:
+      tags: [Payments]
+      summary: Plans d'abonnement pro
+      operationId: listSubscriptionPlans
+      responses:
+        '200':
+          description: Plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SubscriptionPlan'
+
+  # ═══════════════════════════════════════════════
+  # ADMIN
+  # ═══════════════════════════════════════════════
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Tableau de bord admin
+      operationId: getAdminDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+        '403':
+          description: Admin uniquement
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Liste des utilisateurs
+      operationId: adminListUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/UserRole'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Utilisateurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserList'
+        '403':
+          description: Admin uniquement
+
+  /admin/users/{id}/suspend:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Admin]
+      summary: Suspendre un utilisateur
+      operationId: suspendUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Utilisateur suspendu
+        '403':
+          description: Admin uniquement
+
+  /admin/motorcycles:
+    get:
+      tags: [Admin]
+      summary: Toutes les annonces
+      operationId: adminListMotorcycles
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/MotorcycleStatus'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Annonces
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MotorcycleSummary'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '403':
+          description: Admin uniquement
+
+  /admin/motorcycles/{id}/status:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Admin]
+      summary: Modérer une annonce (admin)
+      operationId: adminUpdateStatus
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusUpdateRequest'
+      responses:
+        '200':
+          description: Statut mis à jour
+        '403':
+          description: Admin uniquement
+
+  /admin/reports:
+    get:
+      tags: [Admin]
+      summary: Liste des signalements
+      operationId: adminListReports
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, REVIEWED, RESOLVED, DISMISSED]
+      responses:
+        '200':
+          description: Signalements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Report'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '403':
+          description: Admin uniquement
+
+  /admin/reports/{id}/resolve:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Admin]
+      summary: Résoudre un signalement
+      operationId: resolveReport
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [RESOLVED, DISMISSED]
+                action:
+                  type: string
+                  description: "Action prise (ex: supprimer l'annonce, avertir le vendeur)"
+      responses:
+        '200':
+          description: Résolu
+        '403':
+          description: Admin uniquement
+
+  /admin/brands:
+    post:
+      tags: [Admin]
+      summary: Ajouter une marque
+      operationId: adminCreateBrand
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                logo:
+                  type: string
+      responses:
+        '201':
+          description: Marque créée
+        '403':
+          description: Admin uniquement
+
+  /admin/brands/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [Admin]
+      summary: Modifier une marque
+      operationId: adminUpdateBrand
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                logo:
+                  type: string
+      responses:
+        '200':
+          description: Marque modifiée
+        '403':
+          description: Admin uniquement
+    delete:
+      tags: [Admin]
+      summary: Supprimer une marque
+      operationId: adminDeleteBrand
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Supprimée
+        '403':
+          description: Admin uniquement
+
+  /admin/models:
+    post:
+      tags: [Admin]
+      summary: Ajouter un modèle
+      operationId: adminCreateModel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [brandId, name]
+              properties:
+                brandId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Modèle créé
+        '403':
+          description: Admin uniquement
+
+  /admin/models/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [Admin]
+      summary: Modifier un modèle
+      operationId: adminUpdateModel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                brandId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Modifié
+        '403':
+          description: Admin uniquement
+    delete:
+      tags: [Admin]
+      summary: Supprimer un modèle
+      operationId: adminDeleteModel
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Supprimé
+        '403':
+          description: Admin uniquement
+
+  /admin/categories:
+    post:
+      tags: [Admin]
+      summary: Ajouter une catégorie
+      operationId: adminCreateCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+      responses:
+        '201':
+          description: Catégorie créée
+        '403':
+          description: Admin uniquement
+
+  /admin/categories/{id}:
+    parameters:
+      - name: id
+        in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    put:
+      tags: [Admin]
+      summary: Modifier une catégorie
+      operationId: adminUpdateCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+      responses:
+        '200':
+          description: Modifiée
+        '403':
+          description: Admin uniquement
+    delete:
+      tags: [Admin]
+      summary: Supprimer une catégorie
+      operationId: adminDeleteCategory
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Supprimée
+        '403':
+          description: Admin uniquement
+
+  /admin/subscriptions:
+    get:
+      tags: [Admin]
+      summary: Liste des abonnements
+      operationId: adminListSubscriptions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Abonnements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '403':
+          description: Admin uniquement
+
+  /admin/payments:
+    get:
+      tags: [Admin]
+      summary: Historique des paiements
+      operationId: adminListPayments
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PaymentStatus'
+      responses:
+        '200':
+          description: Paiements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '403':
+          description: Admin uniquement
+
+  /admin/verification/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [Admin]
+      summary: Vérifier/refuser un vendeur
+      operationId: adminVerifySeller
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [VERIFIED, REJECTED]
+      responses:
+        '200':
+          description: Statut mis à jour
+        '403':
+          description: Admin uniquement
