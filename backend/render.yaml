@@ -7,6 +7,9 @@
 # Variables requises à définir dans le dashboard Render :
 #   DATABASE_URL         URL PostgreSQL (Neon ou Supabase), ex :
 #                        postgresql://user:pass@host/db?sslmode=require
+#                        (Neon : utiliser la connexion "pooled" pour l'exécution)
+#   DIRECT_URL           URL PostgreSQL directe (SANS "-pooler") utilisée par
+#                        `prisma migrate deploy` pour créer/appliquer les migrations
 #   CORS_ORIGIN          https://<ton-app>.vercel.app
 #   JWT_SECRET           chaîne longue et aléatoire
 #   JWT_REFRESH_SECRET   chaîne longue et aléatoire
@@ -46,6 +49,8 @@ services:
         value: https://motomarket.vercel.app
         sync: false
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
         sync: false
       - key: JWT_SECRET
         generateValue: true

@@ -105,7 +105,10 @@ Architecture cible :
 1. Créer un compte sur [neon.tech](https://neon.tech) → **Create a project**.
 2. Copier l'URL de connexion (PostgreSQL), elle ressemble à :
    `postgresql://user:pass@ep-xxx.region.aws.neon.tech/motomarket?sslmode=require`
-3. Garder cette URL : elle servira de `DATABASE_URL`.
+3. Garder cette URL. Neon fournit une URL de connexion **pooled** (avec `-pooler`) :
+   elle servira de `DATABASE_URL`. Récupérer aussi l'URL **directe** (sans `-pooler`,
+   onglet « Direct connection ») : elle servira de `DIRECT_URL`, utilisée par
+   `prisma migrate deploy` pour appliquer les migrations.
 
 ### 2. Backend → Render
 
