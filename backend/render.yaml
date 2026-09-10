@@ -33,7 +33,10 @@ services:
     region: frankfurt
     rootDir: backend
 
-    buildCommand: npm install && npm run build && npx prisma generate
+    # NODE_ENV=production est fixé par Render avant npm install → les
+    # devDependencies (typescript, @types/*, prisma CLI) ne seraient pas
+    # installées. --include=dev les force à être présentes au moment du build.
+    buildCommand: npm install --include=dev && npm run build && npx prisma generate
 
     startCommand: npx prisma migrate deploy && node dist/server.js
 
