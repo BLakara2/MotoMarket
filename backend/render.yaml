@@ -10,10 +10,11 @@
 #   CORS_ORIGIN          https://<ton-app>.vercel.app
 #   JWT_SECRET           chaîne longue et aléatoire
 #   JWT_REFRESH_SECRET   chaîne longue et aléatoire
-#   STORAGE_ENDPOINT     endpoint S3 (Cloudflare R2 / Backblaze B2)
-#   STORAGE_BUCKET       nom du bucket
-#   STORAGE_ACCESS_KEY   clé d'accès R2/B2
-#   STORAGE_SECRET_KEY   clé secrète R2/B2
+#   AWS_ENDPOINT_URL_S3  endpoint S3 (Neon Object Storage / Cloudflare R2 / B2)
+#   AWS_REGION           région du bucket
+#   AWS_ACCESS_KEY_ID    clé d'accès S3
+#   AWS_SECRET_ACCESS_KEY clé secrète S3
+#   STORAGE_BUCKET       nom du bucket (ex: assets)
 #
 # Optionnelles :
 #   PORT                 (fourni automatiquement par Render)
@@ -50,11 +51,13 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
-      - key: STORAGE_ENDPOINT
-        sync: false
       - key: STORAGE_BUCKET
+        value: assets
+      - key: AWS_ENDPOINT_URL_S3
         sync: false
-      - key: STORAGE_ACCESS_KEY
+      - key: AWS_REGION
+        value: eu-central-1
+      - key: AWS_ACCESS_KEY_ID
         sync: false
-      - key: STORAGE_SECRET_KEY
+      - key: AWS_SECRET_ACCESS_KEY
         sync: false

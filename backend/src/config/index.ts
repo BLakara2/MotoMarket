@@ -14,10 +14,11 @@ export const config = {
   jwtExpiresIn: '15m' as JwtExpiresIn,
   jwtRefreshExpiresIn: '7d' as JwtExpiresIn,
   storage: {
-    endpoint: process.env.STORAGE_ENDPOINT || '',
-    bucket: process.env.STORAGE_BUCKET || '',
-    accessKey: process.env.STORAGE_ACCESS_KEY || '',
-    secretKey: process.env.STORAGE_SECRET_KEY || '',
+    endpoint: process.env.AWS_ENDPOINT_URL_S3 || process.env.STORAGE_ENDPOINT || '',
+    region: process.env.AWS_REGION || 'eu-central-1',
+    bucket: process.env.STORAGE_BUCKET || 'assets',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.STORAGE_ACCESS_KEY || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.STORAGE_SECRET_KEY || '',
   },
   payment: {
     apiKey: process.env.PAYMENT_API_KEY || '',
@@ -25,3 +26,8 @@ export const config = {
   },
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
 };
+
+export function isStorageConfigured(): boolean {
+  const { endpoint, bucket, accessKeyId, secretAccessKey } = config.storage;
+  return Boolean(endpoint && bucket && accessKeyId && secretAccessKey);
+}

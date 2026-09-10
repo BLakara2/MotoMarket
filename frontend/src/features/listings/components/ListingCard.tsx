@@ -1,6 +1,7 @@
 import { Card, CardMedia, CardContent, Typography, Box, IconButton, Chip } from '@mui/material';
 import { FavoriteBorder as FavoriteIcon, LocationOn as LocationIcon } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { getFileUrl } from '../../../services/api';
 import type { ListingSummary } from '../../../types';
 
 interface ListingCardProps {
@@ -50,7 +51,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
         <CardMedia
           component="img"
           height="200"
-          image={listing.primaryImage?.url || '/placeholder-listing.jpg'}
+          image={listing.primaryImage ? getFileUrl(listing.primaryImage.url) : '/placeholder-listing.jpg'}
           alt={listing.title}
         />
         <Chip

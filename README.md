@@ -98,7 +98,7 @@ Architecture cible :
 | Frontend (React) | Vercel ou Cloudflare Pages | `frontend/vercel.json` |
 | Backend (Express) | Render (tier free) | `backend/render.yaml` |
 | PostgreSQL | Neon ou Supabase | — |
-| Uploads (photos) | Cloudflare R2 (10 Go) | variables `STORAGE_*` |
+| Uploads (photos) | Neon Object Storage (S3-compatible) | variables `AWS_*` + `STORAGE_BUCKET` |
 
 ### 1. Base de données → Neon (ou Supabase)
 
@@ -115,7 +115,7 @@ Architecture cible :
 3. Renseigner les variables secrètes (`sync: false`) dans le dashboard :
    - `DATABASE_URL` : l'URL Neon de l'étape 1
    - `CORS_ORIGIN` : l'URL du frontend, ex `https://motomarket.vercel.app`
-   - `STORAGE_ENDPOINT` / `STORAGE_BUCKET` / `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` (R2/B2)
+   - `AWS_ENDPOINT_URL_S3` / `AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `STORAGE_BUCKET` (S3-compatible)
 4. Au premier déploiement, Render exécute :
    `npx prisma migrate deploy && node dist/server.js`
    → la migration initiale (`prisma/migrations/20260910000000_init`) crée le schéma.
@@ -131,15 +131,23 @@ Architecture cible :
    `https://motomarket-api.onrender.com/api`.
 4. Deploy. `vercel.json` gère le rewrites SPA (`/listings/:id` etc.).
 
-### 4. Uploads → Cloudflare R2 (recommandé)
+### 4. Uploads → Neon Object Storage (S3-compatible)
 
-Le disque de Render étant éphémère, les photos doivent aller dans un bucket S3 :
+Le disque de Render étant éphémère, les photos des annonces vont dans un
+bucket S3 (tout fournisseur S3-compatible fonctionne : Neon Object Storage,
+Cloudflare R2, Backblaze B2…). Le backend sert les images via un proxy
+`GET /api/files/<key>` (URLs publiques stables pour le frontend).
 
-1. Compte [Cloudflare](https://dash.cloudflare.com) → **R2** → **Create bucket**.
-2. **Manage R2 API Tokens** → créer un token (lecture/écriture).
-3. Renseigner `STORAGE_ENDPOINT` (ex `https://<account_id>.r2.cloudflarestorage.com`),
-   `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`.
-4. Le frontend sert les images via les URLs publiques R2 (ou un dev server sur le bucket).
+1. Sur [neon.tech](https://neon.tech), utiliser le **Object Storage** du projet
+   (bucket `assets`) ou créer un bucket dans R2/B2.
+2. Renseigner dans Render :
+   - `AWS_ENDPOINT_URL_S3` : endpoint du bucket
+     (ex `https://<prefix>.storage.c-6.eu-central-1.aws.neon.tech`)
+   - `AWS_REGION` (ex `eu-central-1`), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+   - `STORAGE_BUCKET` = nom du bucket (par défaut `assets`)
+3. Upload : `POST /api/listings/:id/images` (multipart, ≤ 15 fichiers ≤ 5 Mo,
+   JPG/PNG/WebP, authentifié et réservé au vendeur).
+   Suppression : `DELETE /api/listings/:id/images/:imageId`.
 
 ### Vérification
 
@@ -570,10 +578,11 @@ NODE_ENV=production
 DATABASE_URL=postgresql://user:pass@host:5432/motomarket
 JWT_SECRET=<secret>
 JWT_REFRESH_SECRET=<secret>
-STORAGE_ENDPOINT=
-STORAGE_BUCKET=
-STORAGE_ACCESS_KEY=
-STORAGE_SECRET_KEY=
+AWS_ENDPOINT_URL_S3=https://<prefix>.storage.c-6.eu-central-1.aws.neon.tech
+AWS_REGION=eu-central-1
+AWS_ACCESS_KEY_ID=<access-key>
+AWS_SECRET_ACCESS_KEY=<secret-key>
+STORAGE_BUCKET=assets
 ```
 
 ### Production
@@ -581,7 +590,7 @@ STORAGE_SECRET_KEY=
 - Frontend : Vercel, Netlify ou Nginx
 - Backend : Railway, Render, ou VPS
 - BDD : Supabase, Neon, ou Railway
-- Images : S3 / Cloudflare R2
+- Images : S3-compatible (Neon Object Storage / Cloudflare R2 / B2)
 
 ---
 
