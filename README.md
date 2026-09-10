@@ -1,7 +1,6 @@
 # MotoMarket
 
 > Marketplace web/mobile-first pour acheter et vendre des motos, pièces détachées et accessoires.
-> Comme Vinted, mais spécialisé moto.
 
 ## Concept
 
