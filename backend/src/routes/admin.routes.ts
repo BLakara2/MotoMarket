@@ -14,7 +14,7 @@ router.get('/users', (_req, res) => {
   res.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
 });
 
-router.get('/motorcycles', (_req, res) => {
+router.get('/listings', (_req, res) => {
   res.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
 });
 

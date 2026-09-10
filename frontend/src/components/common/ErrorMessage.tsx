@@ -12,12 +12,15 @@ export default function ErrorMessage({
 }: ErrorMessageProps) {
   return (
     <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      gap={2}
-      sx={{ p: 6, textAlign: 'center' }}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        p: 6,
+        textAlign: 'center',
+      }}
     >
       <ErrorIcon sx={{ fontSize: 64, color: 'error.main' }} />
       <Typography variant="h6" color="error">

@@ -22,7 +22,13 @@ enum SellerType {
   PROFESSIONAL
 }
 
-enum MotorcycleStatus {
+enum ListingType {
+  MOTORCYCLE
+  PART
+  ACCESSORY
+}
+
+enum ListingStatus {
   DRAFT
   PENDING_REVIEW
   ACTIVE
@@ -33,7 +39,7 @@ enum MotorcycleStatus {
   DELETED
 }
 
-enum MotorcycleType {
+enum MotorcycleCategory {
   CROSS
   ROUTE
   ROADSTER
@@ -123,34 +129,34 @@ enum SubscriptionStatus {
 // ═══════════════════════════════════════════════
 
 model User {
-  id               String           @id @default(uuid())
-  firstName        String           @map("first_name") @db.VarChar(50)
-  lastName         String           @map("last_name") @db.VarChar(50)
-  email            String           @unique @db.VarChar(255)
-  phone            String?          @db.VarChar(20)
-  passwordHash     String           @map("password_hash")
-  role             UserRole         @default(USER)
-  avatar           String?
-  isPhoneVerified  Boolean          @default(false) @map("is_phone_verified")
-  isEmailVerified  Boolean          @default(false) @map("is_email_verified")
-  isVerifiedSeller Boolean          @default(false) @map("is_verified_seller")
+  id                 String             @id @default(uuid())
+  firstName          String             @map("first_name") @db.VarChar(50)
+  lastName           String             @map("last_name") @db.VarChar(50)
+  email              String             @unique @db.VarChar(255)
+  phone              String?            @db.VarChar(20)
+  passwordHash       String             @map("password_hash")
+  role               UserRole           @default(USER)
+  avatar             String?
+  isPhoneVerified    Boolean            @default(false) @map("is_phone_verified")
+  isEmailVerified    Boolean            @default(false) @map("is_email_verified")
+  isVerifiedSeller   Boolean            @default(false) @map("is_verified_seller")
   verificationStatus VerificationStatus @default(NOT_REQUESTED) @map("verification_status")
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  sellerProfile    SellerProfile?
-  motorcycles      Motorcycle[]
-  favorites        Favorite[]
-  sentMessages     Message[]        @relation("SentMessages")
-  conversations    Conversation[]   @relation("BuyerConversations")
-  sellerConversations Conversation[] @relation("SellerConversations")
-  reviewsGiven     Review[]         @relation("ReviewReviewer")
-  reviewsReceived  Review[]         @relation("ReviewSeller")
-  reports          Report[]
-  payments         Payment[]
-  boosts           Boost[]
-  subscriptions    Subscription[]
-  refreshTokens    RefreshToken[]
+  sellerProfile       SellerProfile?
+  listings            Listing[]
+  favorites           Favorite[]
+  sentMessages        Message[]          @relation("SentMessages")
+  buyerConversations  Conversation[]     @relation("BuyerConversations")
+  sellerConversations Conversation[]     @relation("SellerConversations")
+  reviewsGiven        Review[]           @relation("ReviewReviewer")
+  reviewsReceived     Review[]           @relation("ReviewSeller")
+  reports             Report[]
+  payments            Payment[]
+  boosts              Boost[]
+  subscriptions       Subscription[]
+  refreshTokens       RefreshToken[]
 
   @@map("users")
 }
@@ -168,21 +174,25 @@ model RefreshToken {
 }
 
 model SellerProfile {
-  id           String       @id @default(uuid())
-  userId       String       @unique @map("user_id")
-  type         SellerType   @default(INDIVIDUAL)
-  businessName String?      @map("business_name") @db.VarChar(100)
-  description  String?      @db.Text
+  id           String     @id @default(uuid())
+  userId       String     @unique @map("user_id")
+  type         SellerType @default(INDIVIDUAL)
+  businessName String?    @map("business_name") @db.VarChar(100)
+  description  String?    @db.Text
   logo         String?
-  city         String       @db.VarChar(100)
-  district     String?      @db.VarChar(100)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  city         String     @db.VarChar(100)
+  district     String?    @db.VarChar(100)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("seller_profiles")
 }
+
+// ═══════════════════════════════════════════════
+// MARQUES & MODÈLES (pour les motos)
+// ═══════════════════════════════════════════════
 
 model Brand {
   id        String   @id @default(uuid())
@@ -190,8 +200,8 @@ model Brand {
   logo      String?
   createdAt DateTime @default(now()) @map("created_at")
 
-  models MotorcycleModel[]
-  motorcycles Motorcycle[]
+  models    Listing[]
+  motorcycleModels MotorcycleModel[]
 
   @@map("brands")
 }
@@ -202,114 +212,155 @@ model MotorcycleModel {
   name      String   @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
 
-  brand       Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  motorcycles Motorcycle[]
+  brand    Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  listings Listing[]
 
   @@unique([brandId, name])
   @@map("motorcycle_models")
 }
 
-model Category {
+// ═══════════════════════════════════════════════
+// CATÉGORIES PIÈCES & ACCESSOIRES
+// ═══════════════════════════════════════════════
+
+model PartCategory {
   id    String @id @default(uuid())
   name  String @unique @db.VarChar(100)
   slug  String @unique @db.VarChar(100)
+  icon  String?
 
-  motorcycles Motorcycle[]
+  listings Listing[]
 
-  @@map("categories")
+  @@map("part_categories")
 }
 
-model Motorcycle {
-  id              String           @id @default(uuid())
-  sellerId        String           @map("seller_id")
-  brandId         String           @map("brand_id")
-  modelId         String           @map("model_id")
-  categoryId      String?          @map("category_id")
-  title           String           @db.VarChar(100)
-  description     String           @db.Text
-  price           Int
-  isPriceNegotiable Boolean        @default(false) @map("is_price_negotiable")
-  year            Int
-  mileage         Int
-  engineCc        Int              @map("engine_cc")
-  type            MotorcycleType
-  fuel            FuelType
-  transmission    TransmissionType
-  condition       ConditionType
-  city            String           @db.VarChar(100)
-  district        String?          @db.VarChar(100)
-  status          MotorcycleStatus @default(DRAFT)
-  isFeatured      Boolean          @default(false) @map("is_featured")
-  publishedAt     DateTime?        @map("published_at")
-  expiresAt       DateTime?        @map("expires_at")
-  maintenanceInfo String?          @db.Text @map("maintenance_info")
-  papersInfo      String?          @db.Text @map("papers_info")
-  modifications   String?          @db.Text
-  viewsCount      Int              @default(0) @map("views_count")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
+model AccessoryCategory {
+  id    String @id @default(uuid())
+  name  String @unique @db.VarChar(100)
+  slug  String @unique @db.VarChar(100)
+  icon  String?
 
-  seller       User              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  brand        Brand             @relation(fields: [brandId], references: [id])
-  model        MotorcycleModel   @relation(fields: [modelId], references: [id])
-  category     Category?         @relation(fields: [categoryId], references: [id])
-  images       MotorcycleImage[]
-  favorites    Favorite[]
-  reviews      Review[]
-  reports      Report[]
-  conversations Conversation[]
+  listings Listing[]
+
+  @@map("accessory_categories")
+}
+
+// ═══════════════════════════════════════════════
+// ANNONCES (motos, pièces, accessoires)
+// ═══════════════════════════════════════════════
+
+model Listing {
+  id                String         @id @default(uuid())
+  sellerId          String         @map("seller_id")
+  type              ListingType
+
+  // ── Commun à tous les types ──
+  title             String         @db.VarChar(100)
+  description       String         @db.Text
+  price             Int
+  isPriceNegotiable Boolean        @default(false) @map("is_price_negotiable")
+  condition         ConditionType
+  city              String         @db.VarChar(100)
+  district          String?        @db.VarChar(100)
+  status            ListingStatus  @default(DRAFT)
+  isFeatured        Boolean        @default(false) @map("is_featured")
+  publishedAt       DateTime?      @map("published_at")
+  expiresAt         DateTime?      @map("expires_at")
+  viewsCount        Int            @default(0) @map("views_count")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  // ── Champs spécifiques MOTO ──
+  brandId           String?        @map("brand_id")
+  modelId           String?        @map("model_id")
+  motorcycleCategory MotorcycleCategory? @map("motorcycle_category")
+  year              Int?
+  mileage           Int?
+  engineCc          Int?           @map("engine_cc")
+  fuel              FuelType?
+  transmission      TransmissionType?
+  maintenanceInfo   String?        @db.Text @map("maintenance_info")
+  papersInfo        String?        @db.Text @map("papers_info")
+  modifications     String?        @db.Text
+
+  // ── Champs spécifiques PIÈCE ──
+  partCategoryId    String?        @map("part_category_id")
+  compatibleBrands  String?        @db.Text @map("compatible_brands")
+  partReference     String?        @db.VarChar(100) @map("part_reference")
+
+  // ── Champs spécifiques ACCESSOIRE ──
+  accessoryCategoryId String?      @map("accessory_category_id")
+  accessorySize     String?        @db.VarChar(20) @map("accessory_size")
+  accessoryColor    String?        @db.VarChar(50) @map("accessory_color")
+  accessoryBrand    String?        @db.VarChar(100) @map("accessory_brand")
+
+  // ── Relations ──
+  seller            User           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  brand             Brand?         @relation(fields: [brandId], references: [id])
+  model             MotorcycleModel? @relation(fields: [modelId], references: [id])
+  partCategory      PartCategory?  @relation(fields: [partCategoryId], references: [id])
+  accessoryCategory AccessoryCategory? @relation(fields: [accessoryCategoryId], references: [id])
+  images            ListingImage[]
+  favorites         Favorite[]
+  reviews           Review[]
+  reports           Report[]
+  conversations     Conversation[]
+  boosts            Boost[]
 
   @@index([sellerId])
+  @@index([type])
   @@index([brandId])
   @@index([modelId])
+  @@index([partCategoryId])
+  @@index([accessoryCategoryId])
   @@index([status])
   @@index([city])
   @@index([price])
   @@index([createdAt])
-  @@map("motorcycles")
+  @@map("listings")
 }
 
-model MotorcycleImage {
-  id           String   @id @default(uuid())
-  motorcycleId String   @map("motorcycle_id")
-  url          String
-  position     Int      @default(0)
-  isPrimary    Boolean  @default(false) @map("is_primary")
-  createdAt    DateTime @default(now()) @map("created_at")
+model ListingImage {
+  id        String   @id @default(uuid())
+  listingId String   @map("listing_id")
+  url       String
+  position  Int      @default(0)
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  @@index([motorcycleId])
-  @@map("motorcycle_images")
+  @@index([listingId])
+  @@map("listing_images")
 }
 
 model Favorite {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  motorcycleId String   @map("motorcycle_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  listingId String   @map("listing_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, motorcycleId])
+  @@unique([userId, listingId])
   @@map("favorites")
 }
 
 model Conversation {
-  id           String    @id @default(uuid())
-  motorcycleId String    @map("motorcycle_id")
-  buyerId      String    @map("buyer_id")
-  sellerId     String    @map("seller_id")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  listingId String   @map("listing_id")
+  buyerId   String   @map("buyer_id")
+  sellerId  String   @map("seller_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
-  buyer      User       @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade)
-  seller     User       @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade)
-  messages   Message[]
+  listing  Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer    User      @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller   User      @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade)
+  messages Message[]
 
-  @@unique([motorcycleId, buyerId, sellerId])
+  @@unique([listingId, buyerId, sellerId])
   @@map("conversations")
 }
 
@@ -329,35 +380,35 @@ model Message {
 }
 
 model Review {
-  id           String       @id @default(uuid())
-  reviewerId   String       @map("reviewer_id")
-  sellerId     String       @map("seller_id")
-  motorcycleId String?      @map("motorcycle_id")
-  rating       Int
-  comment      String?      @db.Text
-  status       ReviewStatus @default(ACTIVE)
-  createdAt    DateTime     @default(now()) @map("created_at")
+  id          String       @id @default(uuid())
+  reviewerId  String       @map("reviewer_id")
+  sellerId    String       @map("seller_id")
+  listingId   String?      @map("listing_id")
+  rating      Int
+  comment     String?      @db.Text
+  status      ReviewStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  reviewer   User        @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
-  seller     User        @relation("ReviewSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  motorcycle Motorcycle? @relation(fields: [motorcycleId], references: [id])
+  reviewer User        @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  seller   User        @relation("ReviewSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  listing  Listing?    @relation(fields: [listingId], references: [id])
 
-  @@unique([reviewerId, motorcycleId])
+  @@unique([reviewerId, listingId])
   @@map("reviews")
 }
 
 model Report {
-  id           String       @id @default(uuid())
-  reporterId   String       @map("reporter_id")
-  motorcycleId String       @map("motorcycle_id")
-  reason       ReportReason
-  description  String?      @db.Text
-  status       ReportStatus @default(PENDING)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  resolvedAt   DateTime?    @map("resolved_at")
+  id          String       @id @default(uuid())
+  reporterId  String       @map("reporter_id")
+  listingId   String       @map("listing_id")
+  reason      ReportReason
+  description String?      @db.Text
+  status      ReportStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  resolvedAt  DateTime?    @map("resolved_at")
 
-  reporter   User       @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
+  reporter User    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  listing  Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@map("reports")
 }
@@ -375,18 +426,18 @@ model BoostPlan {
 }
 
 model Boost {
-  id           String     @id @default(uuid())
-  motorcycleId String     @map("motorcycle_id")
-  userId       String     @map("user_id")
-  planId       String     @map("plan_id")
-  startsAt     DateTime   @map("starts_at")
-  endsAt       DateTime   @map("ends_at")
-  status       BoostStatus @default(ACTIVE)
-  createdAt    DateTime   @default(now()) @map("created_at")
+  id         String     @id @default(uuid())
+  listingId  String     @map("listing_id")
+  userId     String     @map("user_id")
+  planId     String     @map("plan_id")
+  startsAt   DateTime   @map("starts_at")
+  endsAt     DateTime   @map("ends_at")
+  status     BoostStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now()) @map("created_at")
 
-  motorcycle Motorcycle @relation(fields: [motorcycleId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan       BoostPlan  @relation(fields: [planId], references: [id])
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan    BoostPlan @relation(fields: [planId], references: [id])
 
   @@map("boosts")
 }

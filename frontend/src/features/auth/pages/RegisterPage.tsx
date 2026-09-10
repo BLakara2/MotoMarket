@@ -72,10 +72,14 @@ export default function RegisterPage() {
         }}
       >
         <Paper sx={{ p: 4, width: '100%' }}>
-          <Typography variant="h4" fontWeight={700} textAlign="center" gutterBottom>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }} gutterBottom>
             Inscription
           </Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: 'center', mb: 3 }}
+          >
             Créez votre compte pour commencer
           </Typography>
 
@@ -151,7 +155,7 @@ export default function RegisterPage() {
             </Button>
           </Box>
 
-          <Typography variant="body2" textAlign="center" sx={{ mt: 3 }}>
+          <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
             Déjà un compte ?{' '}
             <Link component={RouterLink} to="/login">
               Se connecter

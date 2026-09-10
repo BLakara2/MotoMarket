@@ -29,7 +29,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Prisma
-backend/prisma/migrations/
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
 
 # Uploads
 backend/uploads/*

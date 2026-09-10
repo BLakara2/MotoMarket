@@ -1,6 +1,8 @@
 export type UserRole = 'USER' | 'PRO' | 'ADMIN';
 
-export type MotorcycleStatus =
+export type ListingType = 'MOTORCYCLE' | 'PART' | 'ACCESSORY';
+
+export type ListingStatus =
   | 'DRAFT'
   | 'PENDING_REVIEW'
   | 'ACTIVE'
@@ -10,7 +12,7 @@ export type MotorcycleStatus =
   | 'REJECTED'
   | 'DELETED';
 
-export type MotorcycleType =
+export type MotorcycleCategory =
   | 'CROSS'
   | 'ROUTE'
   | 'ROADSTER'
@@ -41,6 +43,8 @@ export type ReportReason =
   | 'FORBIDDEN_CONTENT'
   | 'OTHER';
 
+// ── Marques & Modèles ──
+
 export interface Brand {
   id: string;
   name: string;
@@ -54,18 +58,32 @@ export interface MotorcycleModel {
   brand?: Brand;
 }
 
-export interface Category {
+// ── Catégories pièces & accessoires ──
+
+export interface PartCategory {
   id: string;
   name: string;
   slug: string;
+  icon?: string;
 }
 
-export interface MotorcycleImage {
+export interface AccessoryCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+}
+
+// ── Images ──
+
+export interface ListingImage {
   id: string;
   url: string;
   position: number;
   isPrimary: boolean;
 }
+
+// ── Vendeur ──
 
 export interface SellerSummary {
   id: string;
@@ -75,56 +93,6 @@ export interface SellerSummary {
   sellerType: SellerType;
   businessName?: string;
   averageRating: number;
-}
-
-export interface MotorcycleSummary {
-  id: string;
-  title: string;
-  price: number;
-  year: number;
-  mileage: number;
-  engineCc: number;
-  city: string;
-  status: MotorcycleStatus;
-  isFeatured: boolean;
-  primaryImage?: MotorcycleImage;
-  brand: Brand;
-  model: MotorcycleModel;
-  seller: SellerSummary;
-  createdAt: string;
-}
-
-export interface Motorcycle extends MotorcycleSummary {
-  sellerId: string;
-  brandId: string;
-  modelId: string;
-  categoryId?: string;
-  isPriceNegotiable: boolean;
-  description: string;
-  type: MotorcycleType;
-  fuel: FuelType;
-  transmission: TransmissionType;
-  condition: ConditionType;
-  district?: string;
-  publishedAt?: string;
-  expiresAt?: string;
-  maintenanceInfo?: string;
-  papersInfo?: string;
-  modifications?: string;
-  viewsCount: number;
-  images: MotorcycleImage[];
-  category?: Category;
-  favoritesCount: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }
 
 export interface SellerProfile {
@@ -148,12 +116,69 @@ export interface UserPublic {
   activeListingsCount: number;
 }
 
+// ── Annonces (listings) ──
+
+export interface ListingSummary {
+  id: string;
+  type: ListingType;
+  title: string;
+  price: number;
+  condition: ConditionType;
+  city: string;
+  status: ListingStatus;
+  isFeatured: boolean;
+  primaryImage?: ListingImage;
+  seller: SellerSummary;
+  createdAt: string;
+
+  // Motos uniquement
+  brand?: Brand;
+  model?: MotorcycleModel;
+  year?: number;
+  mileage?: number;
+  engineCc?: number;
+
+  // Pièces uniquement
+  partCategory?: PartCategory;
+  compatibleBrands?: string;
+  partReference?: string;
+
+  // Accessoires uniquement
+  accessoryCategory?: AccessoryCategory;
+  accessorySize?: string;
+  accessoryColor?: string;
+  accessoryBrand?: string;
+}
+
+export interface Listing extends ListingSummary {
+  sellerId: string;
+  brandId?: string;
+  modelId?: string;
+  motorcycleCategory?: MotorcycleCategory;
+  fuel?: FuelType;
+  transmission?: TransmissionType;
+  isPriceNegotiable: boolean;
+  description: string;
+  district?: string;
+  publishedAt?: string;
+  expiresAt?: string;
+  maintenanceInfo?: string;
+  papersInfo?: string;
+  modifications?: string;
+  viewsCount: number;
+  images: ListingImage[];
+  category?: PartCategory | AccessoryCategory;
+  favoritesCount: number;
+}
+
+// ── Conversations / Messages ──
+
 export interface Conversation {
   id: string;
-  motorcycleId: string;
+  listingId: string;
   buyerId: string;
   sellerId: string;
-  motorcycle: MotorcycleSummary;
+  listing: ListingSummary;
   lastMessage?: Message;
   unreadCount: number;
   createdAt: string;
@@ -169,23 +194,39 @@ export interface Message {
   createdAt: string;
 }
 
+// ── Reviews ──
+
 export interface Review {
   id: string;
   reviewerId: string;
   sellerId: string;
-  motorcycleId?: string;
+  listingId?: string;
   rating: number;
   comment?: string;
   reviewer?: UserPublic;
   createdAt: string;
 }
 
+// ── Reports ──
+
 export interface Report {
   id: string;
   reporterId: string;
-  motorcycleId: string;
+  listingId: string;
   reason: ReportReason;
   description?: string;
   status: string;
   createdAt: string;
+}
+
+// ── Pagination ──
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }

@@ -4,7 +4,7 @@ import EmptyState from '../../../components/common/EmptyState';
 export default function MessagesPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
         Messages
       </Typography>
       <EmptyState
