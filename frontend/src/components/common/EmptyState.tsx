@@ -19,12 +19,15 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      gap={2}
-      sx={{ p: 6, textAlign: 'center' }}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        p: 6,
+        textAlign: 'center',
+      }}
     >
       {icon || <SearchOffIcon sx={{ fontSize: 64, color: 'text.disabled' }} />}
       <Typography variant="h6" color="text.secondary">

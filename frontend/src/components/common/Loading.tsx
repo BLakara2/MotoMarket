@@ -8,12 +8,12 @@ interface LoadingProps {
 export default function Loading({ message = 'Chargement...', fullScreen = false }: LoadingProps) {
   return (
     <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      justifyContent="center"
-      gap={2}
       sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
         minHeight: fullScreen ? '100vh' : '300px',
         p: 4,
       }}

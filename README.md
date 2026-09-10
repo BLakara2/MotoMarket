@@ -1,6 +1,21 @@
 # MotoMarket
 
-> Marketplace web/mobile-first de vente et d'achat de motos.
+> Marketplace web/mobile-first pour acheter et vendre des motos, pièces détachées et accessoires.
+> Comme Vinted, mais spécialisé moto.
+
+## Concept
+
+Chaque utilisateur peut à la fois **vendre** et **acheter** :
+
+| Catégorie | Exemples |
+|-----------|----------|
+| 🏍️ **Motos** | Motos d'occasion complètes (Cross, Route, Scooter, etc.) |
+| 🔧 **Pièces détachées** | Freins, moteurs, pneus, échappements, carénages, électronique |
+| 🧤 **Accessoires** | Casques, blousons, gants, bottes, sacoches, protections |
+
+## Logo
+
+Le logo utilise les initiales **MM** stylisées en vert MotoMarket (#1B5E20).
 
 ## Stack
 
@@ -86,10 +101,10 @@ motomarket/
 │   │   ├── components/     # Composants réutilisables
 │   │   │   ├── common/     # Loading, EmptyState, ConfirmDialog, ImageUploader
 │   │   │   ├── layout/     # Navbar, Footer, Sidebar, MobileNav
-│   │   │   └── motorcycle/ # Card, Grid, Gallery, Info, Price
+│   │   │   └── listing/     # Card, Grid, Gallery, Info, Price
 │   │   ├── features/       # Modules par domaine
 │   │   │   ├── auth/
-│   │   │   ├── motorcycles/
+│   │   │   ├── listings/
 │   │   │   ├── favorites/
 │   │   │   ├── messages/
 │   │   │   ├── profile/
@@ -153,22 +168,22 @@ motomarket/
 ### Convention de fichiers
 
 ```
-features/motorcycles/
+features/listings/
 ├── api/
-│   └── motorcycleApi.ts        # fonctions API (getMotorcycle, createMotorcycle...)
+│   └── listingApi.ts           # fonctions API (getListing, createListing...)
 ├── components/
-│   ├── MotorcycleCard.tsx
-│   ├── MotorcycleFilters.tsx
-│   └── MotorcycleForm.tsx
+│   ├── ListingCard.tsx
+│   ├── ListingFilters.tsx
+│   └── ListingForm.tsx
 ├── hooks/
-│   └── useMotorcycle.ts        # hooks TanStack Query
+│   └── useListing.ts           # hooks TanStack Query
 ├── pages/
-│   ├── MotorcycleListPage.tsx
-│   ├── MotorcycleDetailPage.tsx
-│   ├── CreateMotorcyclePage.tsx
-│   └── EditMotorcyclePage.tsx
+│   ├── ListingListPage.tsx
+│   ├── ListingDetailPage.tsx
+│   ├── CreateListingPage.tsx
+│   └── EditListingPage.tsx
 ├── schemas/
-│   └── motorcycle.schema.ts    # Zod schemas
+│   └── listing.schema.ts       # Zod schemas
 └── types.ts
 ```
 
@@ -176,32 +191,34 @@ features/motorcycles/
 
 | Élément | Convention | Exemple |
 |---------|-----------|---------|
-| Composant | PascalCase | `MotorcycleCard` |
-| Page | PascalCase + `Page` | `MotorcycleListPage` |
-| Hook | camelCase + `use` | `useMotorcycles` |
-| API function | camelCase | `getMotorcycleById` |
-| Zod schema | camelCase + `Schema` | `motorcycleSchema` |
-| Type | PascalCase | `Motorcycle`, `MotorcycleStatus` |
+| Composant | PascalCase | `ListingCard` |
+| Page | PascalCase + `Page` | `ListingListPage` |
+| Hook | camelCase + `use` | `useListings` |
+| API function | camelCase | `getListingById` |
+| Zod schema | camelCase + `Schema` | `listingSchema` |
+| Type | PascalCase | `Listing`, `ListingType` |
 | Store | camelCase | `useAuthStore` |
-| Route path | kebab-case | `/motorcycles/:id` |
+| Route path | kebab-case | `/listings/:id` |
 
 ### Conventions de routes
 
 ```
 Publiques :
   /                          Accueil
-  /search                    Recherche
-  /motorcycles/:id           Détail
+  /search                    Recherche (toutes annonces)
+  /search?type=MOTORCYCLE    Motos
+  /search?type=PART          Pièces
+  /search?type=ACCESSORY     Accessoires
+  /listings/:id              Détail d'une annonce
   /seller/:id                Profil vendeur
-  /brands/:slug              Voir par marque
   /login                     Connexion
   /register                  Inscription
 
 Utilisateur (protégées) :
   /dashboard                 Tableau de bord
-  /dashboard/motorcycles     Mes annonces
-  /dashboard/motorcycles/new Publier
-  /dashboard/motorcycles/:id/edit  Modifier
+  /dashboard/listings        Mes annonces
+  /dashboard/listings/new    Publier
+  /dashboard/listings/:id/edit  Modifier
   /dashboard/favorites       Favoris
   /dashboard/messages        Messages
   /dashboard/messages/:id    Conversation
@@ -211,12 +228,12 @@ Utilisateur (protégées) :
 Admin (protégées role ADMIN) :
   /admin                     Dashboard
   /admin/users               Utilisateurs
-  /admin/motorcycles         Annonces
+  /admin/listings            Annonces
   /admin/reports             Signalements
   /admin/reviews             Avis
   /admin/brands              Marques
   /admin/models              Modèles
-  /admin/categories          Catégories
+  /admin/categories          Pièces & accessoires
   /admin/payments            Paiements
   /admin/subscriptions       Abonnements
 ```
@@ -318,9 +335,9 @@ Logout
 
 ```ts
 // Clés de cache
-['motorcycles']                    // liste
-['motorcycles', filters]           // liste filtrée
-['motorcycle', id]                 // détail
+['listings']                    // liste
+['listings', filters]           // liste filtrée
+['listing', id]                 // détail
 ['seller', id]                     // profil vendeur
 ['favorites']                      // mes favoris
 ['conversations']                  // mes conversations
@@ -345,30 +362,59 @@ useFilterStore    // filtres temporaires de recherche
 Chaque formulaire utilise React Hook Form + Zod.
 
 ```ts
-// schemas/motorcycle.schema.ts
+// schemas/listing.schema.ts
 import { z } from 'zod';
 
-export const motorcycleSchema = z.object({
-  brandId: z.string().uuid('Marque requise'),
-  modelId: z.string().uuid('Modèle requis'),
+export const listingSchema = z.object({
+  type: z.enum(['MOTORCYCLE', 'PART', 'ACCESSORY']),
   title: z.string().min(5).max(100),
   description: z.string().min(20).max(5000),
   price: z.number().min(0, 'Prix invalide'),
-  year: z.number().min(1950).max(2030),
-  mileage: z.number().min(0),
-  engineCc: z.number().min(50).max(2000),
-  type: z.enum(['CROSS', 'ROUTE', 'ROADSTER', 'SCOOTER', 'Trail', 'CUSTOM', 'AUTRE']),
-  fuel: z.enum(['ESSENCE', 'DIELECTRIQUE', 'HYBRIDE', 'ELECTRIQUE']),
-  transmission: z.enum(['MANUELLE', 'AUTOMATIQUE', 'SEMI_AUTO']),
   condition: z.enum(['NEUF', 'TRES_BON', 'BON', 'USAGE', 'A_REFORMER']),
   city: z.string().min(1),
   district: z.string().optional(),
-  maintenanceInfo: z.string().optional(),
-  papersInfo: z.string().optional(),
-  modifications: z.string().optional(),
+  // Champs moto (type = MOTORCYCLE)
+  motorcycle: z.object({
+    brandId: z.string().uuid('Marque requise'),
+    modelId: z.string().uuid('Modèle requis'),
+    year: z.number().min(1950).max(2030),
+    mileage: z.number().min(0),
+    engineCc: z.number().min(50).max(2000),
+    category: z.enum(['CROSS', 'ROUTE', 'ROADSTER', 'SCOOTER', 'TRAIL', 'CUSTOM', 'AUTRE']),
+    fuel: z.enum(['ESSENCE', 'DIELECTRIQUE', 'HYBRIDE', 'ELECTRIQUE']),
+    transmission: z.enum(['MANUELLE', 'AUTOMATIQUE', 'SEMI_AUTO']),
+    maintenanceInfo: z.string().optional(),
+    papersInfo: z.string().optional(),
+    modifications: z.string().optional(),
+  }).optional(),
+  // Champs pièce (type = PART)
+  part: z.object({
+    partCategoryId: z.string().uuid('Catégorie requise'),
+    brandId: z.string().uuid('Marque requise').optional(),
+    motorcycleModelIds: z.array(z.string().uuid()).optional(),
+    compatibleModels: z.array(z.string()).optional(),
+    oemNumber: z.string().optional(),
+  }).optional(),
+  // Champs accessoire (type = ACCESSORY)
+  accessory: z.object({
+    accessoryCategoryId: z.string().uuid('Catégorie requise'),
+    brandId: z.string().uuid('Marque requise').optional(),
+    size: z.string().optional(),
+    gender: z.enum(['MIXTE', 'FEMME', 'HOMME', 'ENFANT']).optional(),
+  }).optional(),
+}).superRefine((data, ctx) => {
+  if (data.type === 'MOTORCYCLE' && !data.motorcycle) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Champs moto requis' });
+  }
+  if (data.type === 'PART' && !data.part) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Champs pièce requis' });
+  }
+  if (data.type === 'ACCESSORY' && !data.accessory) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Champs accessoire requis' });
+  }
 });
 
-export type MotorcycleFormData = z.infer<typeof motorcycleSchema>;
+export type ListingFormData = z.infer<typeof listingSchema>;
 ```
 
 ---
@@ -388,7 +434,7 @@ export type MotorcycleFormData = z.infer<typeof motorcycleSchema>;
 Drag & drop / sélection
   → preview locale (URL.createObjectURL)
   → FormData + multipart/form-data
-  → POST /api/motorcycles/:id/images
+  → POST /api/listings/:id/images
   → { id, url, position, isPrimary }
 ```
 
@@ -532,9 +578,9 @@ fix/*      ← corrections
 Messages de commit :
 
 ```
-feat: add motorcycle listing page
+feat: add listing page with 3 categories
 feat: add authentication flow
-fix: fix motorcycle filter on mobile
+fix: fix listing filter on mobile
 refactor: improve search service
 chore: update dependencies
 ```
@@ -554,9 +600,9 @@ Pour visualiser swagger-ui, copier le fichier dans un outil comme [Swagger Edito
 Un utilisateur doit pouvoir :
 
 1. Créer un compte et se connecter
-2. Rechercher et filtrer des motos
+2. Rechercher et filtrer des motos, pièces et accessoires
 3. Consulter le détail d'une annonce
-4. Publier une moto avec photos
+4. Publier une annonce avec photos (moto, pièce ou accessoire)
 5. Modifier et supprimer ses annonces
 6. Ajouter des annonces en favoris
 7. Contacter un vendeur

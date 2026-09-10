@@ -63,10 +63,14 @@ export default function LoginPage() {
         }}
       >
         <Paper sx={{ p: 4, width: '100%' }}>
-          <Typography variant="h4" fontWeight={700} textAlign="center" gutterBottom>
+          <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }} gutterBottom>
             Connexion
           </Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ textAlign: 'center', mb: 3 }}
+          >
             Connectez-vous pour accéder à votre compte
           </Typography>
 
@@ -104,7 +108,7 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          <Typography variant="body2" textAlign="center" sx={{ mt: 3 }}>
+          <Typography variant="body2" sx={{ textAlign: 'center', mt: 3 }}>
             Pas encore de compte ?{' '}
             <Link component={RouterLink} to="/register">
               Créer un compte

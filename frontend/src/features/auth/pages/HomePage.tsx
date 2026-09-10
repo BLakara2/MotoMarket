@@ -1,6 +1,6 @@
 import { Box, Typography, Button, Container, Grid, Card, CardContent } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { Search as SearchIcon, Add as AddIcon, TwoWheeler as MotoIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, TwoWheeler as MotoIcon, Build as PartIcon, Checkroom as AccessoryIcon } from '@mui/icons-material';
 
 export default function HomePage() {
   return (
@@ -17,12 +17,12 @@ export default function HomePage() {
         }}
       >
         <MotoIcon sx={{ fontSize: 80, color: 'primary.main' }} />
-        <Typography variant="h2" fontWeight={700}>
-          Trouvez votre moto idéale
+        <Typography variant="h2" sx={{ fontWeight: 700 }}>
+          La marketplace moto de Madagascar
         </Typography>
-        <Typography variant="h6" color="text.secondary" maxWidth={600}>
-          La marketplace spécialisée pour l'achat et la vente de motos à Madagascar.
-          Des milliers d'annonces vous attendent.
+        <Typography variant="h6" color="text.secondary" sx={{ maxWidth: 600 }}>
+          Achetez et vendez des motos, pièces détachées et accessoires.
+          Simple, rapide, sécurisé.
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
           <Button
@@ -39,38 +39,59 @@ export default function HomePage() {
             size="large"
             startIcon={<AddIcon />}
             component={Link}
-            to="/dashboard/motorcycles/new"
+            to="/dashboard/listings/new"
           >
             Publier une annonce
           </Button>
         </Box>
       </Box>
 
-      {/* Features */}
+      {/* Categories */}
       <Grid container spacing={3} sx={{ mb: 8 }}>
         {[
           {
-            title: 'Recherche rapide',
-            description: 'Filtrez par marque, prix, kilométrage, localisation et plus.',
+            icon: <MotoIcon sx={{ fontSize: 48 }} />,
+            title: 'Motos',
+            description: 'Trouvez la moto idéale parmi des centaines d\'annonces.',
+            link: '/search?type=MOTORCYCLE',
           },
           {
-            title: 'Annonces vérifiées',
-            description: 'Des vendeurs vérifiés pour plus de confiance.',
+            icon: <PartIcon sx={{ fontSize: 48 }} />,
+            title: 'Pièces détachées',
+            description: 'Moteurs, freins, pneus, échappements et plus.',
+            link: '/search?type=PART',
           },
           {
-            title: 'Messagerie intégrée',
-            description: 'Contactez directement les vendeurs en toute simplicité.',
+            icon: <AccessoryIcon sx={{ fontSize: 48 }} />,
+            title: 'Accessoires',
+            description: 'Casques, blousons, gants et équipements.',
+            link: '/search?type=ACCESSORY',
           },
-        ].map((feature) => (
-          <Grid size={{ xs: 12, md: 4 }} key={feature.title}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  {feature.title}
+        ].map((category) => (
+          <Grid size={{ xs: 12, md: 4 }} key={category.title}>
+            <Card
+              sx={{
+                height: '100%',
+                textAlign: 'center',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 },
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{ color: 'primary.main', mb: 2 }}>{category.icon}</Box>
+                <Typography variant="h5" sx={{ fontWeight: 600 }} gutterBottom>
+                  {category.title}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {feature.description}
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                  {category.description}
                 </Typography>
+                <Button
+                  component={Link}
+                  to={category.link}
+                  variant="outlined"
+                >
+                  Voir les annonces
+                </Button>
               </CardContent>
             </Card>
           </Grid>

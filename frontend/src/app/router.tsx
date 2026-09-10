@@ -7,15 +7,14 @@ import MainLayout from '../components/layout/MainLayout';
 const HomePage = lazy(() => import('../features/auth/pages/HomePage'));
 const LoginPage = lazy(() => import('../features/auth/pages/LoginPage'));
 const RegisterPage = lazy(() => import('../features/auth/pages/RegisterPage'));
-const SearchPage = lazy(() => import('../features/motorcycles/pages/MotorcycleListPage'));
-const MotorcycleDetailPage = lazy(() => import('../features/motorcycles/pages/MotorcycleDetailPage'));
-const DashboardPage = lazy(() => import('../features/motorcycles/pages/MotorcycleListPage'));
-const CreateMotorcyclePage = lazy(() => import('../features/motorcycles/pages/CreateMotorcyclePage'));
+const ListingListPage = lazy(() => import('../features/listings/pages/ListingListPage'));
+const ListingDetailPage = lazy(() => import('../features/listings/pages/ListingDetailPage'));
+const CreateListingPage = lazy(() => import('../features/listings/pages/CreateListingPage'));
 const FavoritesPage = lazy(() => import('../features/favorites/pages/FavoritesPage'));
 const MessagesPage = lazy(() => import('../features/messages/pages/MessagesPage'));
 
 const LoadingFallback = () => (
-  <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
     <CircularProgress />
   </Box>
 );
@@ -53,15 +52,15 @@ export const router = createBrowserRouter([
         path: 'search',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <SearchPage />
+            <ListingListPage />
           </Suspense>
         ),
       },
       {
-        path: 'motorcycles/:id',
+        path: 'listings/:id',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <MotorcycleDetailPage />
+            <ListingDetailPage />
           </Suspense>
         ),
       },
@@ -69,15 +68,15 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <DashboardPage />
+            <ListingListPage />
           </Suspense>
         ),
       },
       {
-        path: 'dashboard/motorcycles/new',
+        path: 'dashboard/listings/new',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <CreateMotorcyclePage />
+            <CreateListingPage />
           </Suspense>
         ),
       },

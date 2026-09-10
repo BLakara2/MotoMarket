@@ -18,7 +18,6 @@ import {
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  Search as SearchIcon,
   Add as AddIcon,
   Favorite as FavoriteIcon,
   Message as MessageIcon,
@@ -26,6 +25,9 @@ import {
   Login as LoginIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  TwoWheeler as MotoIcon,
+  Build as PartIcon,
+  Checkroom as AccessoryIcon,
 } from '@mui/icons-material';
 import { Link, useLocation } from 'react-router-dom';
 import { useUIStore } from '../../store/uiStore';
@@ -38,16 +40,18 @@ export default function MainLayout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isDarkMode, toggleTheme } = useUIStore();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, logout } = useAuthStore();
   const location = useLocation();
 
   const navItems = [
     { text: 'Accueil', icon: <HomeIcon />, path: '/' },
-    { text: 'Rechercher', icon: <SearchIcon />, path: '/search' },
+    { text: 'Motos', icon: <MotoIcon />, path: '/search?type=MOTORCYCLE' },
+    { text: 'Pièces', icon: <PartIcon />, path: '/search?type=PART' },
+    { text: 'Accessoires', icon: <AccessoryIcon />, path: '/search?type=ACCESSORY' },
   ];
 
   const authItems = [
-    { text: 'Publier une moto', icon: <AddIcon />, path: '/dashboard/motorcycles/new' },
+    { text: 'Publier une annonce', icon: <AddIcon />, path: '/dashboard/listings/new' },
     { text: 'Mes favoris', icon: <FavoriteIcon />, path: '/dashboard/favorites' },
     { text: 'Messages', icon: <MessageIcon />, path: '/dashboard/messages' },
     { text: 'Mon profil', icon: <PersonIcon />, path: '/dashboard' },
@@ -56,7 +60,7 @@ export default function MainLayout() {
   const drawer = (
     <Box>
       <Box sx={{ p: 2 }}>
-        <Typography variant="h6" fontWeight={700} color="primary">
+        <Typography variant="h6" sx={{ fontWeight: 700 }} color="primary">
           MotoMarket
         </Typography>
       </Box>
@@ -67,8 +71,10 @@ export default function MainLayout() {
             key={item.path}
             component={Link}
             to={item.path}
-            selected={location.pathname === item.path}
             onClick={() => setMobileOpen(false)}
+            sx={{
+              bgcolor: location.pathname === item.path ? 'action.selected' : 'transparent',
+            }}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />
@@ -84,8 +90,10 @@ export default function MainLayout() {
                 key={item.path}
                 component={Link}
                 to={item.path}
-                selected={location.pathname === item.path}
                 onClick={() => setMobileOpen(false)}
+                sx={{
+                  bgcolor: location.pathname === item.path ? 'action.selected' : 'transparent',
+                }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.text} />

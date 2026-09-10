@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: MotoMarket API
   description: |
-    API REST pour la marketplace MotoMarket - Vente et achat de motos.
+    API REST pour la marketplace MotoMarket - Vente et achat de motos, pièces détachées et accessoires.
     
     ## Authentification
     La plupart des routes nécessitent un token JWT dans le header `Authorization: Bearer <token>`.
@@ -13,6 +13,11 @@ info:
     ## Upload Photos
     Utiliser `multipart/form-data` pour les uploads. Formats acceptés: JPG, JPEG, PNG, WebP.
     Taille max configurable côté serveur.
+    
+    ## Types d'annonces
+    - **MOTORCYCLE** : Motos complètes
+    - **PART** : Pièces détachées (freins, moteurs, pneus...)
+    - **ACCESSORY** : Accessoires (casques, blousons, gants...)
   version: 1.0.0
   contact:
     name: MotoMarket
@@ -28,8 +33,8 @@ servers:
 tags:
   - name: Auth
     description: Inscription, connexion, token
-  - name: Motorcycles
-    description: CRUD annonces motos
+  - name: Listings
+    description: CRUD annonces (motos, pièces, accessoires)
   - name: Favorites
     description: Gestion des favoris
   - name: Users
@@ -58,13 +63,19 @@ components:
       type: string
       enum: [USER, PRO, ADMIN]
 
-    MotorcycleStatus:
+    ListingType:
+      type: string
+      enum: [MOTORCYCLE, PART, ACCESSORY]
+      description: "Type d'annonce : MOTORCYCLE (moto), PART (pièce détachée), ACCESSORY (accessoire)"
+
+    ListingStatus:
       type: string
       enum: [DRAFT, PENDING_REVIEW, ACTIVE, SOLD, PAUSED, EXPIRED, REJECTED, DELETED]
 
-    MotorcycleType:
+    MotorcycleCategory:
       type: string
-      enum: [CROSS, ROUTE, ROADSTER, SCOOTER,Trail, CUSTOM, AUTRE]
+      enum: [CROSS, ROUTE, ROADSTER, SCOOTER, TRAIL, CUSTOM, AUTRE]
+      description: "Catégorie de moto (uniquement pour les annonces de type MOTORCYCLE)"
 
     FuelType:
       type: string
@@ -305,23 +316,51 @@ components:
         slug:
           type: string
 
-    # ── Motorcycle ──
-    Motorcycle:
+    PartCategory:
       type: object
+      description: "Catégorie de pièce détachée"
       properties:
         id:
           type: string
           format: uuid
+        name:
+          type: string
+          example: "Freins"
+        slug:
+          type: string
+          example: "freins"
+        icon:
+          type: string
+          nullable: true
+
+    AccessoryCategory:
+      type: object
+      description: "Catégorie d'accessoire"
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Casque"
+        slug:
+          type: string
+          example: "casque"
+        icon:
+          type: string
+          nullable: true
+
+    # ── Annonce (Listing) ──
+    Listing:
+      type: object
+      description: "Annonce unifiée (moto, pièce ou accessoire)"
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/ListingType'
         sellerId:
-          type: string
-          format: uuid
-        brandId:
-          type: string
-          format: uuid
-        modelId:
-          type: string
-          format: uuid
-        categoryId:
           type: string
           format: uuid
         title:
@@ -333,19 +372,6 @@ components:
           description: "Prix en Ariary (MGA)"
         isPriceNegotiable:
           type: boolean
-        year:
-          type: integer
-        mileage:
-          type: integer
-          description: "Kilométrage en km"
-        engineCc:
-          type: integer
-        type:
-          $ref: '#/components/schemas/MotorcycleType'
-        fuel:
-          $ref: '#/components/schemas/FuelType'
-        transmission:
-          $ref: '#/components/schemas/TransmissionType'
         condition:
           $ref: '#/components/schemas/ConditionType'
         city:
@@ -354,7 +380,7 @@ components:
           type: string
           nullable: true
         status:
-          $ref: '#/components/schemas/MotorcycleStatus'
+          $ref: '#/components/schemas/ListingStatus'
         isFeatured:
           type: boolean
         publishedAt:
@@ -365,18 +391,39 @@ components:
           type: string
           format: date-time
           nullable: true
+        viewsCount:
+          type: integer
         images:
           type: array
           items:
-            $ref: '#/components/schemas/MotorcycleImage'
-        brand:
-          $ref: '#/components/schemas/Brand'
-        model:
-          $ref: '#/components/schemas/MotorcycleModel'
-        category:
-          $ref: '#/components/schemas/Category'
+            $ref: '#/components/schemas/ListingImage'
         seller:
           $ref: '#/components/schemas/SellerSummary'
+        # Champs spécifiques MOTO
+        brand:
+          $ref: '#/components/schemas/Brand'
+          nullable: true
+        model:
+          $ref: '#/components/schemas/MotorcycleModel'
+          nullable: true
+        motorcycleCategory:
+          $ref: '#/components/schemas/MotorcycleCategory'
+          nullable: true
+        year:
+          type: integer
+          nullable: true
+        mileage:
+          type: integer
+          nullable: true
+        engineCc:
+          type: integer
+          nullable: true
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+          nullable: true
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+          nullable: true
         maintenanceInfo:
           type: string
           nullable: true
@@ -386,9 +433,30 @@ components:
         modifications:
           type: string
           nullable: true
+        # Champs spécifiques PIÈCE
+        partCategory:
+          $ref: '#/components/schemas/PartCategory'
+          nullable: true
+        compatibleBrands:
+          type: string
+          nullable: true
+        partReference:
+          type: string
+          nullable: true
+        # Champs spécifiques ACCESSOIRE
+        accessoryCategory:
+          $ref: '#/components/schemas/AccessoryCategory'
+          nullable: true
+        accessorySize:
+          type: string
+          nullable: true
+        accessoryColor:
+          type: string
+          nullable: true
+        accessoryBrand:
+          type: string
+          nullable: true
         favoritesCount:
-          type: integer
-        viewsCount:
           type: integer
         createdAt:
           type: string
@@ -397,38 +465,205 @@ components:
           type: string
           format: date-time
 
-    MotorcycleSummary:
+    ListingSummary:
       type: object
-      description: Version allégée pour les listes
+      description: "Version allégée pour les listes"
       properties:
         id:
           type: string
           format: uuid
+        type:
+          $ref: '#/components/schemas/ListingType'
         title:
           type: string
         price:
           type: integer
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        status:
+          $ref: '#/components/schemas/ListingStatus'
+        isFeatured:
+          type: boolean
+        primaryImage:
+          $ref: '#/components/schemas/ListingImage'
+        seller:
+          $ref: '#/components/schemas/SellerSummary'
+        # Motos
+        brand:
+          $ref: '#/components/schemas/Brand'
+          nullable: true
+        model:
+          $ref: '#/components/schemas/MotorcycleModel'
+          nullable: true
+        year:
+          type: integer
+          nullable: true
+        mileage:
+          type: integer
+          nullable: true
+        engineCc:
+          type: integer
+          nullable: true
+        # Pièces
+        partCategory:
+          $ref: '#/components/schemas/PartCategory'
+          nullable: true
+        # Accessoires
+        accessoryCategory:
+          $ref: '#/components/schemas/AccessoryCategory'
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ListingCreateRequest:
+      type: object
+      required: [type, title, description, price, condition, city]
+      properties:
+        type:
+          $ref: '#/components/schemas/ListingType'
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 20
+          maxLength: 5000
+        price:
+          type: integer
+          minimum: 0
+        isPriceNegotiable:
+          type: boolean
+          default: false
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        district:
+          type: string
+          nullable: true
+        # Motos
+        brandId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        motorcycleCategory:
+          $ref: '#/components/schemas/MotorcycleCategory'
+        year:
+          type: integer
+          minimum: 1950
+          maximum: 2030
+        mileage:
+          type: integer
+          minimum: 0
+        engineCc:
+          type: integer
+          minimum: 50
+          maximum: 2000
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+        maintenanceInfo:
+          type: string
+          nullable: true
+        papersInfo:
+          type: string
+          nullable: true
+        modifications:
+          type: string
+          nullable: true
+        # Pièces
+        partCategoryId:
+          type: string
+          format: uuid
+        compatibleBrands:
+          type: string
+        partReference:
+          type: string
+        # Accessoires
+        accessoryCategoryId:
+          type: string
+          format: uuid
+        accessorySize:
+          type: string
+        accessoryColor:
+          type: string
+        accessoryBrand:
+          type: string
+
+    ListingUpdateRequest:
+      type: object
+      description: "Tous les champs sont optionnels"
+      properties:
+        type:
+          $ref: '#/components/schemas/ListingType'
+        title:
+          type: string
+          minLength: 5
+          maxLength: 100
+        description:
+          type: string
+          minLength: 20
+          maxLength: 5000
+        price:
+          type: integer
+          minimum: 0
+        isPriceNegotiable:
+          type: boolean
+        condition:
+          $ref: '#/components/schemas/ConditionType'
+        city:
+          type: string
+        district:
+          type: string
+        brandId:
+          type: string
+          format: uuid
+        modelId:
+          type: string
+          format: uuid
+        motorcycleCategory:
+          $ref: '#/components/schemas/MotorcycleCategory'
         year:
           type: integer
         mileage:
           type: integer
         engineCc:
           type: integer
-        city:
+        fuel:
+          $ref: '#/components/schemas/FuelType'
+        transmission:
+          $ref: '#/components/schemas/TransmissionType'
+        partCategoryId:
           type: string
-        status:
-          $ref: '#/components/schemas/MotorcycleStatus'
-        isFeatured:
-          type: boolean
-        primaryImage:
-          $ref: '#/components/schemas/MotorcycleImage'
-        brand:
-          $ref: '#/components/schemas/Brand'
-        model:
-          $ref: '#/components/schemas/MotorcycleModel'
-        seller:
-          $ref: '#/components/schemas/SellerSummary'
+          format: uuid
+        compatibleBrands:
+          type: string
+        partReference:
+          type: string
+        accessoryCategoryId:
+          type: string
+          format: uuid
+        accessorySize:
+          type: string
+        accessoryColor:
+          type: string
+        accessoryBrand:
+          type: string
+        favoritesCount:
+          type: integer
+        viewsCount:
+          type: integer
         createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -454,128 +689,15 @@ components:
           type: number
           format: float
 
-    MotorcycleCreateRequest:
-      type: object
-      required: [brandId, modelId, title, description, price, year, mileage, engineCc, type, fuel, transmission, condition, city]
-      properties:
-        brandId:
-          type: string
-          format: uuid
-        modelId:
-          type: string
-          format: uuid
-        categoryId:
-          type: string
-          format: uuid
-          nullable: true
-        title:
-          type: string
-          minLength: 5
-          maxLength: 100
-        description:
-          type: string
-          minLength: 20
-          maxLength: 5000
-        price:
-          type: integer
-          minimum: 0
-        isPriceNegotiable:
-          type: boolean
-          default: false
-        year:
-          type: integer
-          minimum: 1950
-          maximum: 2030
-        mileage:
-          type: integer
-          minimum: 0
-        engineCc:
-          type: integer
-          minimum: 50
-          maximum: 2000
-        type:
-          $ref: '#/components/schemas/MotorcycleType'
-        fuel:
-          $ref: '#/components/schemas/FuelType'
-        transmission:
-          $ref: '#/components/schemas/TransmissionType'
-        condition:
-          $ref: '#/components/schemas/ConditionType'
-        city:
-          type: string
-        district:
-          type: string
-          nullable: true
-        maintenanceInfo:
-          type: string
-          nullable: true
-        papersInfo:
-          type: string
-          nullable: true
-        modifications:
-          type: string
-          nullable: true
-
-    MotorcycleUpdateRequest:
-      type: object
-      description: Tous les champs sont optionnels (PATCH partiel)
-      properties:
-        brandId:
-          type: string
-          format: uuid
-        modelId:
-          type: string
-          format: uuid
-        categoryId:
-          type: string
-          format: uuid
-        title:
-          type: string
-          minLength: 5
-          maxLength: 100
-        description:
-          type: string
-          minLength: 20
-          maxLength: 5000
-        price:
-          type: integer
-          minimum: 0
-        isPriceNegotiable:
-          type: boolean
-        year:
-          type: integer
-        mileage:
-          type: integer
-        engineCc:
-          type: integer
-        type:
-          $ref: '#/components/schemas/MotorcycleType'
-        fuel:
-          $ref: '#/components/schemas/FuelType'
-        transmission:
-          $ref: '#/components/schemas/TransmissionType'
-        condition:
-          $ref: '#/components/schemas/ConditionType'
-        city:
-          type: string
-        district:
-          type: string
-        maintenanceInfo:
-          type: string
-        papersInfo:
-          type: string
-        modifications:
-          type: string
-
     StatusUpdateRequest:
       type: object
       required: [status]
       properties:
         status:
-          $ref: '#/components/schemas/MotorcycleStatus'
+          $ref: '#/components/schemas/ListingStatus'
 
     # ── Images ──
-    MotorcycleImage:
+    ListingImage:
       type: object
       properties:
         id:
@@ -610,14 +732,14 @@ components:
         id:
           type: string
           format: uuid
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         createdAt:
           type: string
           format: date-time
-        motorcycle:
-          $ref: '#/components/schemas/MotorcycleSummary'
+        listing:
+          $ref: '#/components/schemas/ListingSummary'
 
     # ── Conversations / Messages ──
     Conversation:
@@ -626,7 +748,7 @@ components:
         id:
           type: string
           format: uuid
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         buyerId:
@@ -635,8 +757,8 @@ components:
         sellerId:
           type: string
           format: uuid
-        motorcycle:
-          $ref: '#/components/schemas/MotorcycleSummary'
+        listing:
+          $ref: '#/components/schemas/ListingSummary'
         lastMessage:
           $ref: '#/components/schemas/Message'
         unreadCount:
@@ -650,9 +772,9 @@ components:
 
     ConversationCreateRequest:
       type: object
-      required: [motorcycleId, sellerId, content]
+      required: [listingId, sellerId, content]
       properties:
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         sellerId:
@@ -705,9 +827,10 @@ components:
         sellerId:
           type: string
           format: uuid
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
+          nullable: true
         rating:
           type: integer
           minimum: 1
@@ -736,10 +859,10 @@ components:
           type: string
           maxLength: 1000
           nullable: true
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
-          description: "ID de la moto concernée par la transaction"
+          description: "ID de l'annonce concernée par la transaction"
 
     # ── Reports ──
     Report:
@@ -751,7 +874,7 @@ components:
         reporterId:
           type: string
           format: uuid
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         reason:
@@ -772,9 +895,9 @@ components:
 
     ReportCreateRequest:
       type: object
-      required: [motorcycleId, reason]
+      required: [listingId, reason]
       properties:
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         reason:
@@ -837,7 +960,6 @@ components:
     WebhookRequest:
       type: object
       description: "Payload du provider de paiement (adapté par provider)"
-      type: object
       properties:
         event:
           type: string
@@ -867,7 +989,7 @@ components:
         id:
           type: string
           format: uuid
-        motorcycleId:
+        listingId:
           type: string
           format: uuid
         userId:
@@ -937,7 +1059,7 @@ components:
           type: integer
         activeListings:
           type: integer
-        soldMotorcycles:
+        soldListings:
           type: integer
         pendingReports:
           type: integer
@@ -1116,15 +1238,20 @@ paths:
   # ═══════════════════════════════════════════════
   # MOTORCYCLES
   # ═══════════════════════════════════════════════
-  /motorcycles:
+  /listings:
     get:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Liste des annonces (recherche + filtres)
-      operationId: listMotorcycles
+      operationId: listListings
       parameters:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/SortParam'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/ListingType'
+          description: "Filtrer par type : MOTORCYCLE, PART ou ACCESSORY"
         - name: search
           in: query
           schema:
@@ -1140,6 +1267,18 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: partCategoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: "Filtrer par catégorie de pièce"
+        - name: accessoryCategoryId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: "Filtrer par catégorie d'accessoire"
         - name: minPrice
           in: query
           schema:
@@ -1164,10 +1303,10 @@ paths:
           in: query
           schema:
             type: integer
-        - name: type
+        - name: motorcycleCategory
           in: query
           schema:
-            $ref: '#/components/schemas/MotorcycleType'
+            $ref: '#/components/schemas/MotorcycleCategory'
         - name: fuel
           in: query
           schema:
@@ -1208,14 +1347,14 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MotorcycleSummary'
+                      $ref: '#/components/schemas/ListingSummary'
                   pagination:
                     $ref: '#/components/schemas/PaginationMeta'
 
     post:
-      tags: [Motorcycles]
-      summary: Publier une annonce
-      operationId: createMotorcycle
+      tags: [Listings]
+      summary: Créer une annonce
+      operationId: createListing
       security:
         - bearerAuth: []
       requestBody:
@@ -1223,20 +1362,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MotorcycleCreateRequest'
+              $ref: '#/components/schemas/ListingCreateRequest'
       responses:
         '201':
-          description: Annonce créée (status DRAFT ou PENDING_REVIEW)
+          description: Annonce créée
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Motorcycle'
+                $ref: '#/components/schemas/Listing'
         '400':
           description: Données invalides
         '401':
           description: Non authentifié
 
-  /motorcycles/{id}:
+  /listings/{id}:
     parameters:
       - name: id
         in: path
@@ -1246,23 +1385,23 @@ paths:
           format: uuid
 
     get:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Détail d'une annonce
-      operationId: getMotorcycle
+      operationId: getListing
       responses:
         '200':
           description: Détail complet
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Motorcycle'
+                $ref: '#/components/schemas/Listing'
         '404':
           description: Annonce non trouvée
 
     put:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Modifier une annonce
-      operationId: updateMotorcycle
+      operationId: updateListing
       security:
         - bearerAuth: []
       requestBody:
@@ -1270,44 +1409,32 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MotorcycleUpdateRequest'
+              $ref: '#/components/schemas/ListingUpdateRequest'
       responses:
         '200':
           description: Annonce modifiée
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Motorcycle'
-        '400':
-          description: Données invalides
-        '401':
-          description: Non authentifié
+                $ref: '#/components/schemas/Listing'
         '403':
           description: Pas le propriétaire
         '404':
           description: Annonce non trouvée
 
     delete:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Supprimer une annonce
-      operationId: deleteMotorcycle
+      operationId: deleteListing
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Supprimée
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessResponse'
-        '401':
-          description: Non authentifié
         '403':
           description: Pas le propriétaire
-        '404':
-          description: Annonce non trouvée
 
-  /motorcycles/{id}/status:
+  /listings/{id}/status:
     parameters:
       - name: id
         in: path
@@ -1316,9 +1443,9 @@ paths:
           type: string
           format: uuid
     patch:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Changer le statut d'une annonce
-      operationId: updateMotorcycleStatus
+      operationId: updateListingStatus
       security:
         - bearerAuth: []
       requestBody:
@@ -1330,16 +1457,10 @@ paths:
       responses:
         '200':
           description: Statut mis à jour
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Motorcycle'
-        '400':
-          description: Transition de statut invalide
         '403':
           description: Non autorisé
 
-  /motorcycles/{id}/images:
+  /listings/{id}/images:
     parameters:
       - name: id
         in: path
@@ -1348,7 +1469,7 @@ paths:
           type: string
           format: uuid
     post:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Ajouter des photos
       operationId: uploadImages
       security:
@@ -1368,7 +1489,6 @@ paths:
                     format: binary
                   minItems: 1
                   maxItems: 15
-                  description: "Fichiers JPG, JPEG, PNG ou WebP"
       responses:
         '201':
           description: Photos uploadées
@@ -1378,12 +1498,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ImageUploadResponse'
-        '400':
-          description: Fichier invalide ou trop gros
         '403':
           description: Pas le propriétaire
 
-  /motorcycles/{id}/images/{imageId}:
+  /listings/{id}/images/{imageId}:
     parameters:
       - name: id
         in: path
@@ -1398,7 +1516,7 @@ paths:
           type: string
           format: uuid
     delete:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Supprimer une photo
       operationId: deleteImage
       security:
@@ -1439,9 +1557,9 @@ paths:
         '401':
           description: Non authentifié
 
-  /favorites/{motorcycleId}:
+  /favorites/{listingId}:
     parameters:
-      - name: motorcycleId
+      - name: listingId
         in: path
         required: true
         schema:
@@ -1758,7 +1876,7 @@ paths:
   # ═══════════════════════════════════════════════
   /brands:
     get:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Liste des marques
       operationId: listBrands
       responses:
@@ -1780,7 +1898,7 @@ paths:
           type: string
           format: uuid
     get:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Modèles d'une marque
       operationId: listModelsByBrand
       responses:
@@ -1795,7 +1913,7 @@ paths:
 
   /categories:
     get:
-      tags: [Motorcycles]
+      tags: [Listings]
       summary: Liste des catégories
       operationId: listCategories
       responses:
@@ -1911,9 +2029,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [motorcycleId, planId]
+              required: [listingId, planId]
               properties:
-                motorcycleId:
+                listingId:
                   type: string
                   format: uuid
                 planId:
@@ -2017,11 +2135,11 @@ paths:
         '403':
           description: Admin uniquement
 
-  /admin/motorcycles:
+  /admin/listings:
     get:
       tags: [Admin]
       summary: Toutes les annonces
-      operationId: adminListMotorcycles
+      operationId: adminListListings
       security:
         - bearerAuth: []
       parameters:
@@ -2030,7 +2148,7 @@ paths:
         - name: status
           in: query
           schema:
-            $ref: '#/components/schemas/MotorcycleStatus'
+            $ref: '#/components/schemas/ListingStatus'
         - name: search
           in: query
           schema:
@@ -2046,13 +2164,13 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/MotorcycleSummary'
+                      $ref: '#/components/schemas/ListingSummary'
                   pagination:
                     $ref: '#/components/schemas/PaginationMeta'
         '403':
           description: Admin uniquement
 
-  /admin/motorcycles/{id}/status:
+  /admin/listings/{id}/status:
     parameters:
       - name: id
         in: path
@@ -2309,10 +2427,10 @@ paths:
     parameters:
       - name: id
         in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
+        required: true
+        schema:
+          type: string
+          format: uuid
     put:
       tags: [Admin]
       summary: Modifier une catégorie

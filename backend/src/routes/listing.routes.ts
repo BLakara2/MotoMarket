@@ -3,7 +3,7 @@ import { authMiddleware, optionalAuth } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-// TODO: implémenter motorcycle controller
+// TODO: implémenter listing controller
 router.get('/', optionalAuth, (_req, res) => {
   res.json({ data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } });
 });
@@ -36,4 +36,4 @@ router.delete('/:id/images/:imageId', authMiddleware, (_req, res) => {
   res.json({ message: 'Non implémenté' });
 });
 
-export { router as motorcycleRouter };
+export { router as listingRouter };
