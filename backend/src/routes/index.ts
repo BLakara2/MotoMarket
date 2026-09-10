@@ -7,6 +7,7 @@ import { conversationRouter } from './conversation.routes';
 import { reviewRouter } from './review.routes';
 import { reportRouter } from './report.routes';
 import { adminRouter } from './admin.routes';
+import { fileRouter } from './file.routes';
 
 export const apiRouter = Router();
 
@@ -18,3 +19,4 @@ apiRouter.use('/conversations', conversationRouter);
 apiRouter.use('/sellers', reviewRouter);
 apiRouter.use('/reports', reportRouter);
 apiRouter.use('/admin', adminRouter);
+apiRouter.use('/files', fileRouter);

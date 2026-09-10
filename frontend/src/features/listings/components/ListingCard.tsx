@@ -1,6 +1,7 @@
 import { Card, CardMedia, CardContent, Typography, Box, IconButton, Chip } from '@mui/material';
-import { FavoriteBorder as FavoriteIcon, LocationOn as LocationIcon } from '@mui/icons-material';
+import { FavoriteBorder as FavoriteIcon, LocationOn as LocationIcon, TwoWheeler as MotoIcon } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { getFileUrl } from '../../../services/api';
 import type { ListingSummary } from '../../../types';
 
 interface ListingCardProps {
@@ -39,20 +40,40 @@ export default function ListingCard({ listing }: ListingCardProps) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'transform 0.2s, box-shadow 0.2s',
+        overflow: 'hidden',
+        transition: 'transform .25s ease, box-shadow .25s ease',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 4,
+          transform: 'translateY(-6px)',
+          boxShadow: 8,
+        },
+        '&:hover .MuiCardMedia-root': {
+          transform: 'scale(1.07)',
         },
       }}
     >
-      <Box sx={{ position: 'relative' }}>
-        <CardMedia
-          component="img"
-          height="200"
-          image={listing.primaryImage?.url || '/placeholder-listing.jpg'}
-          alt={listing.title}
-        />
+      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+        {listing.primaryImage ? (
+          <CardMedia
+            component="img"
+            height="200"
+            image={getFileUrl(listing.primaryImage.url)}
+            alt={listing.title}
+            sx={{ transition: 'transform .6s cubic-bezier(.22,.61,.36,1)' }}
+          />
+        ) : (
+          <Box
+            sx={{
+              height: 200,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundImage: 'linear-gradient(135deg, rgba(14,77,58,.12) 0%, rgba(255,122,0,.1) 100%)',
+              color: 'primary.main',
+            }}
+          >
+            <MotoIcon sx={{ fontSize: 72, opacity: 0.45 }} />
+          </Box>
+        )}
         <Chip
           label={getTypeLabel(listing.type)}
           color={getTypeColor(listing.type)}

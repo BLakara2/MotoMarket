@@ -7,13 +7,17 @@
 # Variables requises à définir dans le dashboard Render :
 #   DATABASE_URL         URL PostgreSQL (Neon ou Supabase), ex :
 #                        postgresql://user:pass@host/db?sslmode=require
+#                        (Neon : utiliser la connexion "pooled" pour l'exécution)
+#   DIRECT_URL           URL PostgreSQL directe (SANS "-pooler") utilisée par
+#                        `prisma migrate deploy` pour créer/appliquer les migrations
 #   CORS_ORIGIN          https://<ton-app>.vercel.app
 #   JWT_SECRET           chaîne longue et aléatoire
 #   JWT_REFRESH_SECRET   chaîne longue et aléatoire
-#   STORAGE_ENDPOINT     endpoint S3 (Cloudflare R2 / Backblaze B2)
-#   STORAGE_BUCKET       nom du bucket
-#   STORAGE_ACCESS_KEY   clé d'accès R2/B2
-#   STORAGE_SECRET_KEY   clé secrète R2/B2
+#   AWS_ENDPOINT_URL_S3  endpoint S3 (Neon Object Storage / Cloudflare R2 / B2)
+#   AWS_REGION           région du bucket
+#   AWS_ACCESS_KEY_ID    clé d'accès S3
+#   AWS_SECRET_ACCESS_KEY clé secrète S3
+#   STORAGE_BUCKET       nom du bucket (ex: assets)
 #
 # Optionnelles :
 #   PORT                 (fourni automatiquement par Render)
@@ -29,7 +33,10 @@ services:
     region: frankfurt
     rootDir: backend
 
-    buildCommand: npm install && npm run build && npx prisma generate
+    # NODE_ENV=production est fixé par Render avant npm install → les
+    # devDependencies (typescript, @types/*, prisma CLI) ne seraient pas
+    # installées. --include=dev les force à être présentes au moment du build.
+    buildCommand: npm install --include=dev && npm run build && npx prisma generate
 
     startCommand: npx prisma migrate deploy && node dist/server.js
 
@@ -46,15 +53,19 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: DIRECT_URL
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
-      - key: STORAGE_ENDPOINT
-        sync: false
       - key: STORAGE_BUCKET
+        value: assets
+      - key: AWS_ENDPOINT_URL_S3
         sync: false
-      - key: STORAGE_ACCESS_KEY
+      - key: AWS_REGION
+        value: eu-central-1
+      - key: AWS_ACCESS_KEY_ID
         sync: false
-      - key: STORAGE_SECRET_KEY
+      - key: AWS_SECRET_ACCESS_KEY
         sync: false

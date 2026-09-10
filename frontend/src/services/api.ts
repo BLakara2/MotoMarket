@@ -94,3 +94,10 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// Construit l'URL publique d'un fichier stocké en S3 (clé stockée dans
+// ListingImage.url) : <API_BASE>/files/<key> → proxy backend.
+export function getFileUrl(key: string): string {
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return `${base}/files/${encodeURIComponent(key)}`;
+}
