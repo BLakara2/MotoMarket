@@ -10,8 +10,20 @@ const app = express();
 // ═══════════════════════════════════════════════
 // MIDDLEWARES
 // ═══════════════════════════════════════════════
+// CORS_ORIGIN peut être une liste d'origines séparées par des virgules
+// (ex: https://a.vercel.app,http://localhost:5173) ou '*' pour tout autoriser.
+const allowedOrigins = config.corsOrigin
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: config.corsOrigin,
+  origin(origin, callback) {
+    if (config.corsOrigin === '*' || !origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
