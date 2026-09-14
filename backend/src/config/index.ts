@@ -19,6 +19,9 @@ export const config = {
     bucket: process.env.STORAGE_BUCKET || 'assets',
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.STORAGE_ACCESS_KEY || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.STORAGE_SECRET_KEY || '',
+    // Certains stockages S3-compatibles (ex. Cloudflare R2) exigent le style
+    // virtual-hosted : mettre S3_FORCE_PATH_STYLE=false dans ce cas.
+    forcePathStyle: process.env.S3_FORCE_PATH_STYLE !== 'false',
   },
   payment: {
     apiKey: process.env.PAYMENT_API_KEY || '',

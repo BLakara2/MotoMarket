@@ -14,8 +14,19 @@ const s3 = new S3Client({
     accessKeyId: config.storage.accessKeyId,
     secretAccessKey: config.storage.secretAccessKey,
   },
-  forcePathStyle: true,
+  forcePathStyle: config.storage.forcePathStyle,
 });
+
+function toStorageError(error: unknown, action: string): Error {
+  const err = error as { name?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+  // Détails côté logs Render (sans secret), message sûr côté client.
+  console.error(`[S3] ${action} failed:`, err?.name, err?.message, 'status:', err?.$metadata?.httpStatusCode);
+  return new ApiError(
+    502,
+    `Échec d'envoi de l'image vers le stockage (${err?.name || 'erreur réseau'}). Vérifiez la configuration S3 du serveur.`,
+    'STORAGE_UPLOAD_FAILED'
+  );
+}
 
 export function requireStorage() {
   if (!config.storage.endpoint || !config.storage.bucket || !config.storage.accessKeyId || !config.storage.secretAccessKey) {
@@ -28,15 +39,19 @@ export function buildFileUrl(host: string, key: string): string {
 }
 
 export async function putObject(key: string, body: Buffer, contentType: string) {
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: config.storage.bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      CacheControl: 'public, max-age=31536000, immutable',
-    })
-  );
+  try {
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: config.storage.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable',
+      })
+    );
+  } catch (error) {
+    throw toStorageError(error, 'putObject');
+  }
 }
 
 export async function deleteObject(key: string) {

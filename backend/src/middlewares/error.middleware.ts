@@ -41,6 +41,17 @@ export function errorHandler(
     });
   }
 
+  // Erreurs d'upload Multer (hors fileFilter qui renvoie déjà un ApiError)
+  if (err.name === 'MulterError') {
+    const message =
+      err.message === 'File too large' || (err as { code?: string }).code === 'LIMIT_FILE_SIZE'
+        ? 'Image trop lourde (5 Mo maximum par photo)'
+        : (err as { code?: string }).code === 'LIMIT_FILE_COUNT'
+          ? 'Trop de fichiers (15 photos maximum)'
+          : 'Échec de lecture des fichiers envoyés';
+    return res.status(400).json({ message, code: 'UPLOAD_ERROR' });
+  }
+
   return res.status(500).json({
     message: 'Erreur interne du serveur',
     code: 'INTERNAL_ERROR',
