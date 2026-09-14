@@ -77,8 +77,25 @@ interface MetaResponse {
 
 type ListingType = 'MOTORCYCLE' | 'PART' | 'ACCESSORY';
 
-const EMPTY_FORM = {
-  title: '',
+// Brouillon auto-sauvegardé : si la session expire en cours de saisie,
+// le formulaire survit à la reconnexion (seules les photos sont à refaire).
+const DRAFT_KEY = 'mm-listing-draft';
+
+function loadDraft(): { type: ListingType; form: typeof EMPTY_FORM } | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { type?: ListingType; form?: Partial<typeof EMPTY_FORM> };
+    if (!parsed || typeof parsed !== 'object') return null;
+    const type: ListingType =
+      parsed.type === 'PART' || parsed.type === 'ACCESSORY' ? parsed.type : 'MOTORCYCLE';
+    return { type, form: { ...EMPTY_FORM, ...parsed.form, negotiable: !!parsed.form?.negotiable } };
+  } catch {
+    return null;
+  }
+}
+
+const EMPTY_FORM = {  title: '',
   brandId: '',
   modelId: '',
   year: '',
@@ -113,10 +130,11 @@ export default function CreateListingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeStep, setActiveStep] = useState(0);
-  const [listingType, setListingType] = useState<ListingType>('MOTORCYCLE');
+  const [listingType, setListingType] = useState<ListingType>(() => loadDraft()?.type ?? 'MOTORCYCLE');
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => loadDraft()?.form ?? EMPTY_FORM);
+  const [draftRestored] = useState(() => loadDraft() !== null);
   const [stepError, setStepError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [submitStage, setSubmitStage] = useState<'idle' | 'creating' | 'uploading' | 'publishing'>('idle');
@@ -137,6 +155,23 @@ export default function CreateListingPage() {
       ref.current.forEach((p) => URL.revokeObjectURL(p.preview));
     };
   }, []);
+
+  // Auto-sauvegarde du brouillon à chaque saisie
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ type: listingType, form }));
+    } catch {
+      // Stockage plein ou indisponible : on ignore
+    }
+  }, [form, listingType]);
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const { data: meta } = useQuery({
     queryKey: ['listings-meta'],
@@ -312,8 +347,10 @@ export default function CreateListingPage() {
       if (publish) {
         setSubmitStage('publishing');
         await api.patch(`/listings/${listing.id}/status`, { status: 'ACTIVE' });
+        clearDraft();
         navigate(`/listings/${listing.id}`);
       } else {
+        clearDraft();
         navigate('/dashboard');
       }
     } catch (err: unknown) {
@@ -447,6 +484,11 @@ export default function CreateListingPage() {
                   Minimum {MIN_PHOTOS} photos, maximum {MAX_PHOTOS}. Formats : JPG, PNG, WebP (5 Mo max).
                   La première photo sera la couverture.
                 </Typography>
+                {draftRestored && photos.length === 0 && (
+                  <Alert severity="info" sx={{ mb: 2, borderRadius: 3 }}>
+                    Brouillon restauré — il ne reste qu'à re-sélectionner vos photos.
+                  </Alert>
+                )}
 
                 <input
                   ref={fileInputRef}

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import api from '../services/api';
 
 export interface User {
   id: string;
@@ -20,6 +21,7 @@ interface AuthState {
   isLoading: boolean;
   login: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
+  restore: (user: User) => void;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
 }
@@ -36,10 +38,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    // Invalide côté serveur (best effort) puis nettoie tout localement,
+    // y compris le header par défaut qui sinon survivrait avec l'ancien token.
+    api.post('/auth/logout').catch(() => undefined);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    delete api.defaults.headers.common.Authorization;
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
+
+  restore: (user) => set({ user, isAuthenticated: true, isLoading: false }),
 
   setUser: (user) => set({ user }),
 

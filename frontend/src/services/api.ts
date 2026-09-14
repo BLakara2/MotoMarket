@@ -80,9 +80,16 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        // On ne déconnecte que si le serveur rejette le refresh (400/401).
+        // Sur erreur réseau (ex. cold start Render), on garde la session et
+        // on laisse l'appel d'origine échouer proprement (retry affiché à l'utilisateur).
+        const status = (refreshError as { response?: { status?: number } })?.response?.status;
+        if (status === 400 || status === 401) {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          delete api.defaults.headers.common.Authorization;
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
