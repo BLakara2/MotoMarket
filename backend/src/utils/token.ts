@@ -1,9 +1,11 @@
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { config } from '../config';
 
 export interface JwtPayload {
   userId: string;
   role: string;
+  jti?: string;
 }
 
 export function generateTokens(userId: string, role: string) {
@@ -13,8 +15,11 @@ export function generateTokens(userId: string, role: string) {
     { expiresIn: config.jwtExpiresIn }
   );
 
+  // jti aléatoire : deux tokens générés la même seconde restent uniques
+  // (la colonne refresh_tokens.token est UNIQUE → sans jti, reconnexion
+  // immédiate = contrainte P2002 = erreur 500 au login).
   const refreshToken = jwt.sign(
-    { userId, role } as JwtPayload,
+    { userId, role, jti: randomUUID() } as JwtPayload,
     config.jwtRefreshSecret,
     { expiresIn: config.jwtRefreshExpiresIn }
   );

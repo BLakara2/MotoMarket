@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { prisma } from '../config/database';
 import { ApiError } from '../middlewares/error.middleware';
 import { ALLOWED_MIME } from '../middlewares/upload.middleware';
@@ -152,6 +153,213 @@ export async function getListingById(req: Request, res: Response, next: NextFunc
       viewsCount: listing.viewsCount,
       favoritesCount: _count.favorites,
       images: listing.images,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Création d'une annonce (toujours en DRAFT — la publication
+// avec vérification des 3 photos min se fait via PATCH /:id/status)
+// ═══════════════════════════════════════════════
+const uuidSchema = z.string().uuid('Identifiant invalide');
+
+const createListingSchema = z.object({
+  type: z.enum(['MOTORCYCLE', 'PART', 'ACCESSORY']),
+  title: z.string().trim().min(5, 'Titre trop court (5 caractères min)').max(100),
+  description: z.string().trim().min(20, 'Description trop courte (20 caractères min)').max(5000),
+  price: z.coerce.number().int('Prix invalide').min(0, 'Prix invalide'),
+  isPriceNegotiable: z.coerce.boolean().optional().default(false),
+  condition: z.enum(['NEUF', 'TRES_BON', 'BON', 'USAGE', 'A_REFORMER']),
+  city: z.string().trim().min(1, 'Ville requise').max(100),
+  district: z.string().trim().max(100).optional().or(z.literal('')),
+
+  // Moto
+  brandId: uuidSchema.optional(),
+  modelId: uuidSchema.optional(),
+  motorcycleCategory: z.enum(['CROSS', 'ROUTE', 'ROADSTER', 'SCOOTER', 'TRAIL', 'CUSTOM', 'AUTRE']).optional(),
+  year: z.coerce.number().int().min(1950).max(2030).optional(),
+  mileage: z.coerce.number().int().min(0).optional(),
+  engineCc: z.coerce.number().int().min(50).max(2000).optional(),
+  fuel: z.enum(['ESSENCE', 'DIELECTRIQUE', 'HYBRIDE', 'ELECTRIQUE']).optional(),
+  transmission: z.enum(['MANUELLE', 'AUTOMATIQUE', 'SEMI_AUTO']).optional(),
+  maintenanceInfo: z.string().trim().max(5000).optional().or(z.literal('')),
+  papersInfo: z.string().trim().max(5000).optional().or(z.literal('')),
+  modifications: z.string().trim().max(5000).optional().or(z.literal('')),
+
+  // Pièce
+  partCategoryId: uuidSchema.optional(),
+  compatibleBrands: z.string().trim().max(500).optional().or(z.literal('')),
+  partReference: z.string().trim().max(100).optional().or(z.literal('')),
+
+  // Accessoire
+  accessoryCategoryId: uuidSchema.optional(),
+  accessoryBrand: z.string().trim().max(100).optional().or(z.literal('')),
+  accessorySize: z.string().trim().max(50).optional().or(z.literal('')),
+  accessoryColor: z.string().trim().max(50).optional().or(z.literal('')),
+}).superRefine((data, ctx) => {
+  if (data.type === 'MOTORCYCLE') {
+    if (!data.brandId) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['brandId'], message: 'Marque requise' });
+    if (!data.modelId) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['modelId'], message: 'Modèle requis' });
+    if (data.year === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['year'], message: 'Année requise' });
+    if (data.mileage === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['mileage'], message: 'Kilométrage requis' });
+    if (data.engineCc === undefined) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['engineCc'], message: 'Cylindrée requise' });
+  }
+  if (data.type === 'PART' && !data.partCategoryId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['partCategoryId'], message: 'Catégorie requise' });
+  }
+  if (data.type === 'ACCESSORY' && !data.accessoryCategoryId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['accessoryCategoryId'], message: 'Catégorie requise' });
+  }
+});
+
+const emptyToUndefined = (v: string | undefined) => (v === undefined || v === '' ? undefined : v);
+
+export async function createListing(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = createListingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Données invalides', 'VALIDATION_ERROR', parsed.error.issues.map((i) => ({
+        field: i.path.join('.') || 'body',
+        message: i.message,
+      })));
+    }
+    const data = parsed.data;
+    const sellerId = req.user!.id;
+
+    // Vérifier les clés étrangères selon le type
+    if (data.type === 'MOTORCYCLE') {
+      const brand = await prisma.brand.findUnique({ where: { id: data.brandId! } });
+      if (!brand) throw new ApiError(400, 'Marque introuvable', 'BRAND_NOT_FOUND');
+      const model = await prisma.motorcycleModel.findFirst({
+        where: { id: data.modelId!, brandId: data.brandId! },
+      });
+      if (!model) throw new ApiError(400, 'Modèle introuvable pour cette marque', 'MODEL_NOT_FOUND');
+    }
+    if (data.type === 'PART' && data.partCategoryId) {
+      const cat = await prisma.partCategory.findUnique({ where: { id: data.partCategoryId } });
+      if (!cat) throw new ApiError(400, 'Catégorie de pièce introuvable', 'CATEGORY_NOT_FOUND');
+    }
+    if (data.type === 'ACCESSORY' && data.accessoryCategoryId) {
+      const cat = await prisma.accessoryCategory.findUnique({ where: { id: data.accessoryCategoryId } });
+      if (!cat) throw new ApiError(400, "Catégorie d'accessoire introuvable", 'CATEGORY_NOT_FOUND');
+    }
+
+    const listing = await prisma.listing.create({
+      data: {
+        sellerId,
+        type: data.type,
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        isPriceNegotiable: data.isPriceNegotiable ?? false,
+        condition: data.condition,
+        city: data.city,
+        district: emptyToUndefined(data.district),
+        status: 'DRAFT',
+        brandId: data.brandId,
+        modelId: data.modelId,
+        motorcycleCategory: data.motorcycleCategory,
+        year: data.year,
+        mileage: data.mileage,
+        engineCc: data.engineCc,
+        fuel: data.fuel,
+        transmission: data.transmission,
+        maintenanceInfo: emptyToUndefined(data.maintenanceInfo),
+        papersInfo: emptyToUndefined(data.papersInfo),
+        modifications: emptyToUndefined(data.modifications),
+        partCategoryId: data.partCategoryId,
+        compatibleBrands: emptyToUndefined(data.compatibleBrands),
+        partReference: emptyToUndefined(data.partReference),
+        accessoryCategoryId: data.accessoryCategoryId,
+        accessoryBrand: emptyToUndefined(data.accessoryBrand),
+        accessorySize: emptyToUndefined(data.accessorySize),
+        accessoryColor: emptyToUndefined(data.accessoryColor),
+      },
+      include: LISTINGS_INCLUDE,
+    });
+
+    res.status(201).json(serializeListing(listing));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Changement de statut (publication / pause / vente)
+// Publication (ACTIVE) exige ≥ 3 photos
+// ═══════════════════════════════════════════════
+const MIN_IMAGES_TO_PUBLISH = 3;
+
+export async function updateListingStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const parsed = z.object({ status: z.enum(['ACTIVE', 'PAUSED', 'SOLD', 'DRAFT']) }).safeParse(req.body);
+    if (!parsed.success) {
+      throw new ApiError(400, 'Statut invalide', 'VALIDATION_ERROR');
+    }
+
+    const listingId = req.params.id as string;
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      include: { images: { select: { id: true } } },
+    });
+
+    if (!listing) {
+      throw new ApiError(404, 'Annonce non trouvée', 'NOT_FOUND');
+    }
+    if (listing.sellerId !== req.user?.id) {
+      throw new ApiError(403, "Pas le propriétaire de cette annonce", 'FORBIDDEN');
+    }
+
+    if (parsed.data.status === 'ACTIVE' && listing.images.length < MIN_IMAGES_TO_PUBLISH) {
+      throw new ApiError(400, `Ajoutez au moins ${MIN_IMAGES_TO_PUBLISH} photos pour publier`, 'NOT_ENOUGH_IMAGES');
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 60);
+
+    const updated = await prisma.listing.update({
+      where: { id: listingId },
+      data: {
+        status: parsed.data.status,
+        ...(parsed.data.status === 'ACTIVE' && !listing.publishedAt
+          ? { publishedAt: now, expiresAt }
+          : {}),
+      },
+      include: LISTINGS_INCLUDE,
+    });
+
+    res.json(serializeListing(updated));
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Référentiel public pour le formulaire de publication :
+// marques + modèles, catégories pièces & accessoires
+// ═══════════════════════════════════════════════
+export async function getListingsMeta(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const [brands, partCategories, accessoryCategories] = await Promise.all([
+      prisma.brand.findMany({
+        orderBy: { name: 'asc' },
+        include: { motorcycleModels: { select: { id: true, name: true }, orderBy: { name: 'asc' } } },
+      }),
+      prisma.partCategory.findMany({ orderBy: { name: 'asc' } }),
+      prisma.accessoryCategory.findMany({ orderBy: { name: 'asc' } }),
+    ]);
+
+    res.json({
+      brands: brands.map((b) => ({
+        id: b.id,
+        name: b.name,
+        models: b.motorcycleModels,
+      })),
+      partCategories,
+      accessoryCategories,
     });
   } catch (error) {
     next(error);
