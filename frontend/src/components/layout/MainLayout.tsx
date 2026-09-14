@@ -8,316 +8,469 @@ import {
   Box,
   Drawer,
   List,
-  ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   useMediaQuery,
   useTheme,
   Divider,
+  Container,
+  Avatar,
+  Menu,
+  MenuItem,
+  Badge,
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper,
+  Stack,
+  Chip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
+  Search as SearchIcon,
   Add as AddIcon,
   Favorite as FavoriteIcon,
   Message as MessageIcon,
   Person as PersonIcon,
-  Login as LoginIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   TwoWheeler as MotoIcon,
   Build as PartIcon,
   Checkroom as AccessoryIcon,
+  Logout as LogoutIcon,
+  Dashboard as DashboardIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 
-const DRAWER_WIDTH = 280;
-const APP_BAR_HEIGHT = '64px';
-const HEADER_GRADIENT = 'linear-gradient(135deg, #0B3B2C 0%, #16704F 100%)';
-const ACCENT_GRADIENT = 'linear-gradient(120deg, #FFB300 0%, #FF7A00 100%)';
+function Logo({ compact = false }: { compact?: boolean }) {
+  return (
+    <Box
+      component={Link}
+      to="/"
+      sx={{ display: 'flex', alignItems: 'center', gap: 1.2, textDecoration: 'none' }}
+    >
+      <Box
+        sx={{
+          width: compact ? 36 : 42,
+          height: compact ? 36 : 42,
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #1E293B 0%, #4C1D95 55%, #7C3AED 130%)',
+          boxShadow: '0 6px 18px rgba(76,29,149,0.35)',
+          color: '#fff',
+        }}
+      >
+        <MotoIcon fontSize={compact ? 'small' : 'medium'} />
+      </Box>
+      <Box sx={{ lineHeight: 1 }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 800, letterSpacing: '-0.02em', color: 'text.primary', fontSize: '1.15rem' }}
+        >
+          Moto<span style={{ color: '#7C3AED' }}>Market</span>
+        </Typography>
+        {!compact && (
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: '0.14em', fontSize: '0.62rem' }}>
+            MADAGASCAR
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
 
-const isSearchPath = (pathname: string) => pathname.startsWith('/search');
+const NAV_LINKS = [
+  { text: 'Accueil', path: '/', icon: <HomeIcon /> },
+  { text: 'Motos', path: '/search?type=MOTORCYCLE', icon: <MotoIcon /> },
+  { text: 'Pièces', path: '/search?type=PART', icon: <PartIcon /> },
+  { text: 'Accessoires', path: '/search?type=ACCESSORY', icon: <AccessoryIcon /> },
+];
+
+const PUBLISH_PATH = '/dashboard/listings/new';
 
 export default function MainLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { isDarkMode, toggleTheme } = useUIStore();
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const navItems = [
-    { text: 'Accueil', icon: <HomeIcon />, path: '/' },
-    { text: 'Motos', icon: <MotoIcon />, path: '/search?type=MOTORCYCLE' },
-    { text: 'Pièces', icon: <PartIcon />, path: '/search?type=PART' },
-    { text: 'Accessoires', icon: <AccessoryIcon />, path: '/search?type=ACCESSORY' },
-  ];
+  const currentKey = location.pathname + location.search;
+  const isActive = (path: string) => {
+    if (path === '/') return currentKey === '/';
+    return currentKey === path || (path === '/search' && location.pathname === '/search');
+  };
 
-  const authItems = [
-    { text: 'Publier une annonce', icon: <AddIcon />, path: '/dashboard/listings/new' },
-    { text: 'Mes favoris', icon: <FavoriteIcon />, path: '/dashboard/favorites' },
-    { text: 'Messages', icon: <MessageIcon />, path: '/dashboard/messages' },
-    { text: 'Mon profil', icon: <PersonIcon />, path: '/dashboard' },
-  ];
+  const bottomValue = (() => {
+    if (currentKey === '/') return 0;
+    if (location.pathname === '/search') return 1;
+    if (location.pathname.includes('/new')) return 2;
+    if (location.pathname.includes('favorites')) return 3;
+    return 4;
+  })();
 
-  const isActive = (path: string) =>
-    isSearchPath(path) ? isSearchPath(location.pathname) : location.pathname === path;
+  const handleLogout = () => {
+    setAnchorEl(null);
+    logout();
+    navigate('/');
+  };
 
-  const brand = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-      <Box
-        sx={{
-          width: 36,
-          height: 36,
-          borderRadius: '12px',
-          backgroundImage: ACCENT_GRADIENT,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 8px 18px -8px rgba(255, 122, 0, .7)',
-          flexShrink: 0,
-        }}
-      >
-        <MotoIcon sx={{ color: '#fff', fontSize: 22 }} />
+  const drawerContent = (
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Logo compact />
+        <IconButton onClick={() => setMobileOpen(false)} size="small">
+          <CloseIcon />
+        </IconButton>
       </Box>
-      <Typography
-        variant="h6"
-        sx={{
-          fontFamily: '"Chakra Petch", sans-serif',
-          fontWeight: 700,
-          letterSpacing: '0.6px',
-          color: 'inherit',
-        }}
-      >
-        MotoMarket
-      </Typography>
-    </Box>
-  );
-
-  const drawerItems = (
-    <Box>
-      <Box sx={{ p: 2, pb: 1 }}>
-        <Typography
-          component={Link}
-          to="/"
-          onClick={() => setMobileOpen(false)}
-          sx={{ color: isDarkMode ? '#EDF2EE' : '#0E4D3A', textDecoration: 'none' }}
-        >
-          {brand}
-        </Typography>
-      </Box>
-      <Divider />
-      <List sx={{ px: 1, py: 1 }}>
-        {navItems.map((item) => (
-          <ListItem
+      <Divider sx={{ my: 1.5 }} />
+      <List sx={{ '& .MuiListItemButton-root': { borderRadius: 2, mb: 0.5 } }}>
+        {NAV_LINKS.map((item) => (
+          <ListItemButton
             key={item.path}
             component={Link}
             to={item.path}
+            selected={isActive(item.path)}
             onClick={() => setMobileOpen(false)}
-            sx={{
-              borderRadius: '12px',
-              mb: 0.5,
-              color: isActive(item.path) ? 'primary.main' : 'inherit',
-              bgcolor: isActive(item.path) ? 'action.selected' : 'transparent',
-              '&:hover': { bgcolor: 'action.hover' },
-              transition: 'background-color .2s ease, color .2s ease',
-            }}
           >
-            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} sx={{ '& .MuiListItemText-primary': { fontWeight: 600 } }} />
-          </ListItem>
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+          </ListItemButton>
         ))}
+        <ListItemButton component={Link} to="/search" selected={location.pathname === '/search' && !location.search} onClick={() => setMobileOpen(false)}>
+          <ListItemIcon><SearchIcon /></ListItemIcon>
+          <ListItemText primary="Tout parcourir" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+        </ListItemButton>
       </List>
-      <Divider />
-      {isAuthenticated ? (
-        <List sx={{ px: 1, py: 1 }}>
-          {authItems.map((item) => (
-            <ListItem
-              key={item.path}
-              component={Link}
-              to={item.path}
-              onClick={() => setMobileOpen(false)}
-              sx={{
-                borderRadius: '12px',
-                mb: 0.5,
-                color: isActive(item.path) ? 'primary.main' : 'inherit',
-                bgcolor: isActive(item.path) ? 'action.selected' : 'transparent',
-                '&:hover': { bgcolor: 'action.hover' },
-                transition: 'background-color .2s ease, color .2s ease',
-              }}
-            >
-              <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} sx={{ '& .MuiListItemText-primary': { fontWeight: 600 } }} />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <List sx={{ px: 2, py: 2 }}>
-          <Button
-            variant="contained"
-            fullWidth
-            component={Link}
-            to="/login"
-            onClick={() => setMobileOpen(false)}
-            startIcon={<LoginIcon />}
-          >
-            Connexion
-          </Button>
-        </List>
+      {isAuthenticated && (
+        <>
+          <Divider sx={{ my: 1 }} />
+          <List sx={{ '& .MuiListItemButton-root': { borderRadius: 2, mb: 0.5 } }}>
+            <ListItemButton component={Link} to="/dashboard/favorites" onClick={() => setMobileOpen(false)}>
+              <ListItemIcon><FavoriteIcon /></ListItemIcon>
+              <ListItemText primary="Mes favoris" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+            </ListItemButton>
+            <ListItemButton component={Link} to="/dashboard/messages" onClick={() => setMobileOpen(false)}>
+              <ListItemIcon><MessageIcon /></ListItemIcon>
+              <ListItemText primary="Messages" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+            </ListItemButton>
+            <ListItemButton component={Link} to="/dashboard" onClick={() => setMobileOpen(false)}>
+              <ListItemIcon><DashboardIcon /></ListItemIcon>
+              <ListItemText primary="Tableau de bord" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+            </ListItemButton>
+          </List>
+        </>
+      )}
+      <Divider sx={{ my: 1.5 }} />
+      <Button
+        variant="contained"
+        color="secondary"
+        fullWidth
+        size="large"
+        startIcon={<AddIcon />}
+        component={Link}
+        to={PUBLISH_PATH}
+        onClick={() => setMobileOpen(false)}
+      >
+        Publier une annonce
+      </Button>
+      {!isAuthenticated && (
+        <Button fullWidth sx={{ mt: 1 }} component={Link} to="/login" onClick={() => setMobileOpen(false)}>
+          Se connecter
+        </Button>
       )}
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      {/* AppBar */}
-      <AppBar
-        position="fixed"
-        elevation={0}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Bandeau promo */}
+      <Box
         sx={{
-          backgroundImage: HEADER_GRADIENT,
-          boxShadow: '0 6px 28px -14px rgba(11, 59, 44, .8)',
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { md: `${DRAWER_WIDTH}px` },
-          zIndex: theme.zIndex.drawer + 1,
+          background: 'linear-gradient(90deg, #0F172A 0%, #4C1D95 60%, #1E1B34 100%)',
+          color: '#fff',
+          py: 0.7,
+          textAlign: 'center',
+          px: 2,
         }}
       >
-        <Toolbar sx={{ minHeight: APP_BAR_HEIGHT, px: { xs: 2, md: 3 } }}>
-          {isMobile && (
-            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(!mobileOpen)} sx={{ mr: 1.5 }}>
-              <MenuIcon />
-            </IconButton>
-          )}
-
-          <Box component={Link} to="/" sx={{ color: 'inherit', textDecoration: 'none' }}>
-            {brand}
+        <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.04em' }}>
+          NOUVEAU — Motos, pièces & accessoires au même endroit
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            {'  '}· Offre Pro avec badge vérifié
           </Box>
+        </Typography>
+      </Box>
 
-          {!isMobile && (
-            <Box sx={{ display: 'flex', ml: 4, gap: 0.5 }}>
-              {navItems.map((item) => (
+      <AppBar
+        position="sticky"
+        color="inherit"
+        sx={{
+          backdropFilter: 'blur(16px)',
+          backgroundColor: isDarkMode ? 'rgba(11,11,22,0.82)' : 'rgba(255,255,255,0.85)',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Container maxWidth="xl">
+          <Toolbar disableGutters sx={{ gap: 2, minHeight: { xs: 64, md: 72 } }}>
+            {isMobile && (
+              <IconButton edge="start" onClick={() => setMobileOpen(true)} aria-label="menu">
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Logo compact={isMobile} />
+
+            {!isMobile && (
+              <Stack direction="row" spacing={0.5} sx={{ ml: 3 }}>
+                {NAV_LINKS.map((l) => (
+                  <Button
+                    key={l.text}
+                    component={Link}
+                    to={l.path}
+                    sx={{
+                      color: isActive(l.path) ? 'secondary.main' : 'text.secondary',
+                      fontWeight: 700,
+                      bgcolor: (t) =>
+                        isActive(l.path)
+                          ? t.palette.mode === 'light'
+                            ? 'rgba(124,58,237,0.1)'
+                            : 'rgba(139,92,246,0.16)'
+                          : 'transparent',
+                      borderRadius: 3,
+                      '&:hover': {
+                        bgcolor: (t) =>
+                          t.palette.mode === 'light' ? 'rgba(124,58,237,0.1)' : 'rgba(255,255,255,0.08)',
+                      },
+                    }}
+                  >
+                    {l.text}
+                  </Button>
+                ))}
+              </Stack>
+            )}
+
+            <Box sx={{ flexGrow: 1 }} />
+
+            <IconButton onClick={toggleTheme} aria-label="thème" sx={{ border: '1px solid', borderColor: 'divider' }}>
+              {isDarkMode ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
+            </IconButton>
+
+            {isAuthenticated ? (
+              <>
+                {!isMobile && (
+                  <>
+                    <IconButton component={Link} to="/dashboard/favorites" aria-label="favoris" sx={{ border: '1px solid', borderColor: 'divider' }}>
+                      <Badge badgeContent={0} color="secondary">
+                        <FavoriteIcon fontSize="small" />
+                      </Badge>
+                    </IconButton>
+                    <IconButton component={Link} to="/dashboard/messages" aria-label="messages" sx={{ border: '1px solid', borderColor: 'divider' }}>
+                      <Badge badgeContent={0} color="secondary">
+                        <MessageIcon fontSize="small" />
+                      </Badge>
+                    </IconButton>
+                  </>
+                )}
                 <Button
-                  key={item.path}
-                  color="inherit"
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<AddIcon />}
                   component={Link}
-                  to={item.path}
-                  sx={{
-                    borderRadius: '999px',
-                    px: 1.75,
-                    py: 0.75,
-                    fontWeight: isActive(item.path) ? 700 : 500,
-                    color: isActive(item.path) ? '#fff' : 'rgba(255,255,255,.82)',
-                    bgcolor: isActive(item.path) ? 'rgba(255,255,255,.18)' : 'transparent',
-                    '&:hover': {
-                      bgcolor: isActive(item.path) ? 'rgba(255,255,255,.24)' : 'rgba(255,255,255,.12)',
-                      color: '#fff',
-                    },
-                    transition: 'background-color .2s ease, color .2s ease',
-                  }}
+                  to={PUBLISH_PATH}
+                  sx={{ display: { xs: 'none', md: 'inline-flex' } }}
                 >
-                  {item.text}
+                  Publier
                 </Button>
-              ))}
-            </Box>
-          )}
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          <IconButton
-            color="inherit"
-            onClick={toggleTheme}
-            size="small"
-            sx={{
-              border: '1px solid rgba(255,255,255,.35)',
-              mr: 1,
-              '&:hover': { bgcolor: 'rgba(255,255,255,.15)' },
-            }}
-          >
-            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
-          </IconButton>
-
-          {isAuthenticated ? (
-            <Button
-              color="inherit"
-              onClick={logout}
-              sx={{
-                borderRadius: '999px',
-                border: '1px solid rgba(255,255,255,.35)',
-                px: 1.75,
-                '&:hover': { bgcolor: 'rgba(255,255,255,.15)' },
-              }}
-            >
-              Déconnexion
-            </Button>
-          ) : (
-            <Button
-              color="inherit"
-              component={Link}
-              to="/login"
-              sx={{
-                borderRadius: '999px',
-                border: '1px solid rgba(255,255,255,.35)',
-                px: 1.75,
-                bgcolor: 'rgba(255,255,255,.1)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,.2)' },
-              }}
-            >
-              <LoginIcon sx={{ mr: 0.5 }} />
-              Connexion
-            </Button>
-          )}
-        </Toolbar>
+                <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+                  <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main', fontSize: '0.9rem' }}>
+                    {user?.firstName?.[0]?.toUpperCase() || <PersonIcon fontSize="small" />}
+                  </Avatar>
+                </IconButton>
+                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} slotProps={{ paper: { sx: { borderRadius: 3, minWidth: 220, mt: 1 } } }}>
+                  <Box sx={{ px: 2, py: 1.5 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
+                  </Box>
+                  <Divider />
+                  <MenuItem component={Link} to="/dashboard" onClick={() => setAnchorEl(null)}>
+                    <DashboardIcon fontSize="small" style={{ marginRight: 10 }} /> Tableau de bord
+                  </MenuItem>
+                  <MenuItem component={Link} to="/dashboard" onClick={() => setAnchorEl(null)}>
+                    <PersonIcon fontSize="small" style={{ marginRight: 10 }} /> Mon profil
+                  </MenuItem>
+                  <Divider />
+                  <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+                    <LogoutIcon fontSize="small" style={{ marginRight: 10 }} /> Déconnexion
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <>
+                {!isMobile && (
+                  <Button component={Link} to="/login" sx={{ color: 'text.primary' }}>
+                    Se connecter
+                  </Button>
+                )}
+                <Button variant="contained" color="secondary" component={Link} to="/register" sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>
+                  Créer un compte
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  component={Link}
+                  to={PUBLISH_PATH}
+                  sx={{ display: { xs: 'inline-flex', sm: 'none' }, minHeight: 40 }}
+                >
+                  <AddIcon fontSize="small" />
+                </Button>
+              </>
+            )}
+          </Toolbar>
+        </Container>
       </AppBar>
 
-      {/* Drawer — permanent desktop / temporaire mobile */}
-      {isMobile ? (
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, borderRight: 'none' },
-          }}
-        >
-          {drawerItems}
-        </Drawer>
-      ) : (
-        <Drawer
-          variant="permanent"
-          open
-          sx={{
-            width: DRAWER_WIDTH,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              boxSizing: 'border-box',
-              borderRight: 'none',
-              boxShadow: '2px 0 24px -18px rgba(0,0,0,.4)',
-            },
-          }}
-        >
-          {drawerItems}
-        </Drawer>
-      )}
-
-      {/* Main Content */}
-      <Box
-        component="main"
-        className="page-enter"
-        sx={{
-          flexGrow: 1,
-          minHeight: '100vh',
-          pt: APP_BAR_HEIGHT,
-          px: { xs: 2, md: 4 },
-          pb: 6,
-          bgcolor: 'background.default',
-        }}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        ModalProps={{ keepMounted: true }}
+        sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 320, borderRadius: '0 20px 20px 0' } }}
       >
+        {drawerContent}
+      </Drawer>
+
+      {/* Contenu */}
+      <Box component="main" className="page-enter" sx={{ flexGrow: 1, pb: { xs: 10, md: 0 } }}>
         <Outlet />
       </Box>
+
+      {/* Footer */}
+      <Box
+        component="footer"
+        sx={{
+          mt: 8,
+          background: isDarkMode ? '#0D0D1C' : '#14122B',
+          color: '#fff',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(600px 300px at 15% 0%, rgba(139,92,246,0.28), transparent), radial-gradient(600px 300px at 90% 20%, rgba(79,70,229,0.22), transparent)',
+            pointerEvents: 'none',
+          }}
+        />
+        <Container maxWidth="xl" sx={{ position: 'relative', py: 7 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 4,
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1.4fr 1fr 1fr 1.2fr' },
+            }}
+          >
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 2 }}>
+                <Box sx={{ width: 42, height: 42, borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#4F46E5,#7C3AED)', color: '#fff' }}>
+                  <MotoIcon />
+                </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>MotoMarket</Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.6, letterSpacing: '0.14em', fontWeight: 700 }}>MADAGASCAR</Typography>
+                </Box>
+              </Box>
+              <Typography variant="body2" sx={{ opacity: 0.75, maxWidth: 320, lineHeight: 1.7 }}>
+                La marketplace de confiance pour motos, pièces et accessoires à Madagascar.
+                Annonces vérifiées, messagerie sécurisée, vendeurs notés.
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 2.5 }}>
+                <Chip label="Paiement sécurisé" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }} />
+                <Chip label="Vendeurs vérifiés" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }} />
+              </Stack>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, opacity: 0.9 }}>EXPLORER</Typography>
+              <Stack spacing={1}>
+                {[['Motos', '/search?type=MOTORCYCLE'], ['Pièces détachées', '/search?type=PART'], ['Accessoires', '/search?type=ACCESSORY'], ['Tout parcourir', '/search']].map(([label, to]) => (
+                  <Typography key={label} component={Link} to={to} variant="body2" sx={{ opacity: 0.7, '&:hover': { opacity: 1, color: '#C4B5FD' } }}>
+                    {label}
+                  </Typography>
+                ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 2, opacity: 0.9 }}>MON COMPTE</Typography>
+              <Stack spacing={1}>
+                {[['Se connecter', '/login'], ["Créer un compte", '/register'], ['Messages', '/dashboard/messages'], ['Publier une annonce', PUBLISH_PATH]].map(([label, to]) => (
+                  <Typography key={label} component={Link} to={to} variant="body2" sx={{ opacity: 0.7, '&:hover': { opacity: 1, color: '#C4B5FD' } }}>
+                    {label}
+                  </Typography>
+                ))}
+              </Stack>
+            </Box>
+            <Box
+              sx={{
+                bgcolor: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 4,
+                p: 3,
+              }}
+            >
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Vendez plus vite</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.7, mt: 0.5, mb: 2 }}>
+                Publiez en 2 minutes avec photos, recevez des contacts qualifiés aujourd'hui.
+              </Typography>
+              <Button variant="contained" color="secondary" fullWidth startIcon={<AddIcon />} component={Link} to={PUBLISH_PATH}>
+                Publier gratuitement
+              </Button>
+            </Box>
+          </Box>
+          <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+            <Typography variant="caption" sx={{ opacity: 0.6 }}>© 2026 MotoMarket Madagascar — Tous droits réservés.</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.6 }}>Conçu avec passion pour les motards · Antananarivo</Typography>
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Bottom nav mobile */}
+      {isMobile && (
+        <Paper
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1200,
+            borderRadius: '20px 20px 0 0',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+          elevation={8}
+        >
+          <BottomNavigation showLabels value={bottomValue} sx={{ borderRadius: '20px 20px 0 0' }}>
+            <BottomNavigationAction label="Accueil" icon={<HomeIcon />} component={Link} to="/" />
+            <BottomNavigationAction label="Recherche" icon={<SearchIcon />} component={Link} to="/search" />
+            <BottomNavigationAction label="Vendre" icon={<AddIcon />} component={Link} to={PUBLISH_PATH} />
+            <BottomNavigationAction label="Favoris" icon={<FavoriteIcon />} component={Link} to="/dashboard/favorites" />
+            <BottomNavigationAction label="Compte" icon={<PersonIcon />} component={Link} to={isAuthenticated ? '/dashboard' : '/login'} />
+          </BottomNavigation>
+        </Paper>
+      )}
     </Box>
   );
 }
