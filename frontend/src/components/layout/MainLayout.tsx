@@ -446,7 +446,7 @@ export default function MainLayout() {
           <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
             <Typography variant="caption" sx={{ opacity: 0.6 }}>© 2026 MotoMarket Madagascar — Tous droits réservés.</Typography>
-            <Typography variant="caption" sx={{ opacity: 0.6 }}>Conçu avec passion pour les motards · Antananarivo</Typography>
+            <Typography variant="caption" sx={{ opacity: 0.6 }}>Design & développement — <Box component="span" sx={{ fontWeight: 800, color: '#fff', opacity: 1 }}>Bryan Lakara</Box> · Antananarivo</Typography>
           </Box>
         </Container>
       </Box>
