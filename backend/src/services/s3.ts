@@ -3,6 +3,8 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadBucketCommand,
+  CreateBucketCommand,
 } from '@aws-sdk/client-s3';
 import { config } from '../config';
 import { ApiError } from '../middlewares/error.middleware';
@@ -31,6 +33,25 @@ function toStorageError(error: unknown, action: string): Error {
 export function requireStorage() {
   if (!config.storage.endpoint || !config.storage.bucket || !config.storage.accessKeyId || !config.storage.secretAccessKey) {
     throw new ApiError(500, 'Stockage S3 non configuré', 'STORAGE_NOT_CONFIGURED');
+  }
+}
+
+// Vérifie que le bucket existe, le crée sinon (évite NoSuchBucket à l'upload).
+// Ne bloque pas le démarrage : un simple avertissement est loggé en cas d'échec.
+export async function ensureBucketExists(): Promise<void> {
+  const Bucket = config.storage.bucket;
+  try {
+    await s3.send(new HeadBucketCommand({ Bucket }));
+    console.log(`[S3] Bucket OK: ${Bucket}`);
+  } catch (error) {
+    if (isS3NotFound(error)) {
+      console.log(`[S3] Bucket manquant, création de "${Bucket}"…`);
+      await s3.send(new CreateBucketCommand({ Bucket }));
+      console.log(`[S3] Bucket créé: ${Bucket}`);
+    } else {
+      const err = error as { name?: string; message?: string };
+      console.warn(`[S3] Vérification du bucket impossible (${err?.name}: ${err?.message}) — l'upload risque d'échouer.`);
+    }
   }
 }
 

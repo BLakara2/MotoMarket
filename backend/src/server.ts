@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config, isStorageConfigured } from './config';
+import { ensureBucketExists } from './services/s3';
 import { errorHandler } from './middlewares/error.middleware';
 import { apiRouter } from './routes';
 
@@ -52,6 +53,9 @@ app.listen(config.port, () => {
   console.log(`[MotoMarket API] Environment: ${config.nodeEnv}`);
   if (isStorageConfigured()) {
     console.log(`[MotoMarket API] Storage: ${config.storage.endpoint} (bucket: ${config.storage.bucket})`);
+    ensureBucketExists().catch((err) => {
+      console.warn('[MotoMarket API] ensureBucketExists a échoué:', (err as Error)?.message);
+    });
   } else {
     console.warn('[MotoMarket API] Storage S3 NON configuré — les uploads photo échoueront.');
   }
