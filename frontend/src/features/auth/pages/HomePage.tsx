@@ -29,8 +29,10 @@ import {
   TwoWheeler as MotoIcon,
   Build as PartIcon,
   Checkroom as AccessoryIcon,
-  Speed as SpeedIcon,
-  Handshake as HandshakeIcon,
+  Terrain as TerrainIcon,
+  ElectricScooter as ScooterIcon,
+  DirectionsBike as CrossIcon,
+  Whatshot as FlameIcon,
 } from '@mui/icons-material';
 
 const HERO_IMG =
@@ -46,11 +48,11 @@ const UNIVERSES = [
 
 const MOTO_CATEGORIES = [
   { label: 'Roadster', count: '1 240', icon: <MotoIcon /> },
-  { label: 'Trail', count: '860', icon: <SpeedIcon /> },
+  { label: 'Trail', count: '860', icon: <TerrainIcon /> },
   { label: 'Sportive', count: '640', icon: <BoltIcon /> },
-  { label: 'Scooter', count: '1 520', icon: <MotoIcon /> },
-  { label: 'Cross', count: '430', icon: <SpeedIcon /> },
-  { label: 'Custom', count: '310', icon: <HandshakeIcon /> },
+  { label: 'Scooter', count: '1 520', icon: <ScooterIcon /> },
+  { label: 'Cross', count: '430', icon: <CrossIcon /> },
+  { label: 'Custom', count: '310', icon: <FlameIcon /> },
 ];
 
 const FEATURED = [
@@ -286,30 +288,67 @@ export default function HomePage() {
               </Grid>
             ))}
           </Grid>
-          <Typography variant="h6" sx={{ fontWeight: 800, mt: 4, mb: 2 }}>Explorer les motos par style</Typography>
-          <Grid container spacing={2}>
-            {MOTO_CATEGORIES.map((c) => (
-              <Grid key={c.label} size={{ xs: 6, sm: 4, md: 2 }}>
+          <Box sx={{ mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Explorer les motos par style</Typography>
+              <Button component={Link} to="/search?type=MOTORCYCLE" endIcon={<ArrowIcon />} size="small" sx={{ color: 'secondary.main' }}>
+                Toutes les motos
+              </Button>
+            </Stack>
+            <Box
+              className="stagger"
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                overflowX: 'auto',
+                pb: 1,
+                mx: -0.5,
+                px: 0.5,
+                scrollSnapType: 'x mandatory',
+                scrollbarWidth: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+              }}
+            >
+              {MOTO_CATEGORIES.map((c) => (
                 <Card
+                  key={c.label}
                   component={Link}
                   to="/search?type=MOTORCYCLE"
                   sx={{
-                    textAlign: 'center',
-                    p: 2.5,
+                    minWidth: 168,
+                    flexShrink: 0,
+                    scrollSnapAlign: 'start',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
                     cursor: 'pointer',
-                    transition: 'all .22s ease',
-                    '&:hover': { transform: 'translateY(-4px)', borderColor: 'secondary.main', boxShadow: '0 16px 40px -12px rgba(124,58,237,0.35)' },
+                    transition: 'all .2s ease',
+                    '&:hover': {
+                      borderColor: 'secondary.main',
+                      boxShadow: '0 10px 28px -12px rgba(124,58,237,0.4)',
+                      '& .style-arrow': { opacity: 1, transform: 'translateX(0)' },
+                      '& .style-icon': { bgcolor: 'secondary.main', color: '#fff' },
+                    },
                   }}
                 >
-                  <Avatar sx={{ mx: 'auto', mb: 1.5, width: 52, height: 52, background: 'linear-gradient(135deg,#EDE9FE,#DDD6FE)', color: '#6D28D9' }}>
+                  <Avatar className="style-icon" sx={{ width: 44, height: 44, bgcolor: 'rgba(124,58,237,0.1)', color: 'secondary.main', transition: 'all .2s ease' }}>
                     {c.icon}
                   </Avatar>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{c.label}</Typography>
-                  <Typography variant="caption" color="text.secondary">{c.count} annonces</Typography>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{c.label}</Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{c.count} annonces</Typography>
+                  </Box>
+                  <ArrowIcon
+                    className="style-arrow"
+                    fontSize="small"
+                    color="secondary"
+                    sx={{ opacity: 0, transform: 'translateX(-6px)', transition: 'all .2s ease' }}
+                  />
                 </Card>
-              </Grid>
-            ))}
-          </Grid>
+              ))}
+            </Box>
+          </Box>
         </Paper>
       </Container>
 
