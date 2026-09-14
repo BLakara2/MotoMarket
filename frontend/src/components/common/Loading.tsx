@@ -18,21 +18,7 @@ export default function Loading({ message = 'Chargement…', fullScreen = false 
         p: 4,
       }}
     >
-      <Box sx={{ position: 'relative', display: 'inline-flex' }}>
-        <CircularProgress size={52} thickness={4} sx={{ color: 'secondary.main' }} />
-        <Box
-          sx={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.2rem',
-          }}
-        >
-          🏍
-        </Box>
-      </Box>
+      <CircularProgress size={44} thickness={4.5} sx={{ color: 'secondary.main' }} />
       <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
         {message}
       </Typography>

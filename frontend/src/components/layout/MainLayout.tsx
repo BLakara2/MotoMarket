@@ -57,7 +57,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
         sx={{
           width: compact ? 36 : 42,
           height: compact ? 36 : 42,
-          borderRadius: '12px',
+          borderRadius: '10px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -346,7 +346,7 @@ export default function MainLayout() {
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         ModalProps={{ keepMounted: true }}
-        sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 320, borderRadius: '0 20px 20px 0' } }}
+        sx={{ '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 320, borderRadius: '0 12px 12px 0' } }}
       >
         {drawerContent}
       </Drawer>
@@ -456,13 +456,13 @@ export default function MainLayout() {
             left: 0,
             right: 0,
             zIndex: 1200,
-            borderRadius: '20px 20px 0 0',
+            borderRadius: '12px 12px 0 0',
             borderTop: '1px solid',
             borderColor: 'divider',
           }}
           elevation={8}
         >
-          <BottomNavigation showLabels value={bottomValue} sx={{ borderRadius: '20px 20px 0 0' }}>
+          <BottomNavigation showLabels value={bottomValue} sx={{ borderRadius: '12px 12px 0 0' }}>
             <BottomNavigationAction label="Accueil" icon={<HomeIcon />} component={Link} to="/" />
             <BottomNavigationAction label="Recherche" icon={<SearchIcon />} component={Link} to="/search" />
             <BottomNavigationAction label="Vendre" icon={<AddIcon />} component={Link} to={PUBLISH_PATH} />

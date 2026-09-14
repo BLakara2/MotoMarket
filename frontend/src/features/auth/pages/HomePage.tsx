@@ -251,7 +251,7 @@ export default function HomePage() {
 
       {/* ============ UNIVERS ============ */}
       <Container maxWidth="xl" sx={{ mt: { xs: 4, md: -5 }, position: 'relative', zIndex: 2 }}>
-        <Paper sx={{ p: { xs: 2.5, md: 3.5 }, borderRadius: 5 }}>
+        <Paper sx={{ p: { xs: 2.5, md: 3.5 }, borderRadius: 4 }}>
           <Stack direction="row" sx={{ mb: 2.5, alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="h5" sx={{ fontWeight: 800 }}>Trois univers, une seule adresse</Typography>
             <Button component={Link} to="/search" endIcon={<ArrowIcon />} sx={{ color: 'secondary.main' }}>
@@ -386,7 +386,7 @@ export default function HomePage() {
       <Container maxWidth="xl" sx={{ mt: 8 }}>
         <Box
           sx={{
-            borderRadius: 6,
+            borderRadius: 4,
             overflow: 'hidden',
             position: 'relative',
             background: 'linear-gradient(120deg, #0F172A 0%, #2E1065 55%, #5B21B6 100%)',

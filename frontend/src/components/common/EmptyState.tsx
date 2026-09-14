@@ -33,7 +33,7 @@ export default function EmptyState({
         sx={{
           width: 88,
           height: 88,
-          borderRadius: '28px',
+          borderRadius: '14px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

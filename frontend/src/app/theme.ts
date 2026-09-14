@@ -62,7 +62,7 @@ const componentOverrides: ThemeOptions['components'] = {
       root: {
         textTransform: 'none',
         fontWeight: 700,
-        borderRadius: 12,
+        borderRadius: 8,
         paddingLeft: 20,
         paddingRight: 20,
         minHeight: 44,
@@ -71,21 +71,21 @@ const componentOverrides: ThemeOptions['components'] = {
         borderWidth: 1.5,
         '&:hover': { borderWidth: 1.5 },
       },
-      sizeLarge: { minHeight: 52, borderRadius: 14, fontSize: '1rem' },
+      sizeLarge: { minHeight: 52, borderRadius: 10, fontSize: '1rem' },
     },
   },
   MuiCard: {
     styleOverrides: {
       root: {
-        borderRadius: 20,
+        borderRadius: 12,
         border: '1px solid rgba(30,41,59,0.07)',
-        boxShadow: '0 1px 2px rgba(23,24,43,0.04), 0 8px 28px -8px rgba(23,24,43,0.12)',
+        boxShadow: '0 1px 2px rgba(23,24,43,0.05), 0 4px 16px -6px rgba(23,24,43,0.12)',
       },
     },
   },
   MuiPaper: {
     styleOverrides: {
-      rounded: { borderRadius: 20 },
+      rounded: { borderRadius: 12 },
       elevation1: {
         boxShadow: '0 1px 2px rgba(23,24,43,0.05), 0 10px 32px -12px rgba(23,24,43,0.18)',
       },
@@ -102,7 +102,7 @@ const componentOverrides: ThemeOptions['components'] = {
     styleOverrides: {
       root: {
         '& .MuiOutlinedInput-root': {
-          borderRadius: 12,
+          borderRadius: 8,
           backgroundColor: 'rgba(30,41,59,0.02)',
           transition: 'all .2s ease',
           '&:hover': { backgroundColor: 'rgba(30,41,59,0.035)' },
@@ -126,7 +126,7 @@ const componentOverrides: ThemeOptions['components'] = {
   },
   MuiDrawer: {
     styleOverrides: {
-      paper: { borderRadius: '0 20px 20px 0' },
+      paper: { borderRadius: '0 12px 12px 0' },
     },
   },
   MuiPagination: {
@@ -168,7 +168,7 @@ export const lightTheme = createTheme({
     divider: 'rgba(23,24,43,0.08)',
   },
   typography: commonTypography,
-  shape: { borderRadius: 16 },
+  shape: { borderRadius: 4 },
   shadows: [
     'none',
     '0 1px 2px rgba(23,24,43,0.05), 0 10px 32px -12px rgba(23,24,43,0.18)',
@@ -225,17 +225,17 @@ export const darkTheme = createTheme({
     divider: 'rgba(255,255,255,0.08)',
   },
   typography: commonTypography,
-  shape: { borderRadius: 16 },
+  shape: { borderRadius: 4 },
   components: {
     ...componentOverrides,
     MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 20,
-          border: '1px solid rgba(255,255,255,0.08)',
-          backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0))',
-        },
+    styleOverrides: {
+      root: {
+        borderRadius: 12,
+        border: '1px solid rgba(255,255,255,0.08)',
+        backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0))',
       },
+    },
     },
   },
 });

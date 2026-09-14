@@ -488,7 +488,7 @@ export default function CreateListingPage() {
                     sx={{
                       width: 64,
                       height: 64,
-                      borderRadius: '20px',
+                      borderRadius: '14px',
                       mx: 'auto',
                       mb: 1.5,
                       display: 'flex',
