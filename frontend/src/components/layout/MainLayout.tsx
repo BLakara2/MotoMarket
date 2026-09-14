@@ -167,6 +167,10 @@ export default function MainLayout() {
               <ListItemIcon><DashboardIcon /></ListItemIcon>
               <ListItemText primary="Tableau de bord" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
             </ListItemButton>
+            <ListItemButton component={Link} to="/dashboard/profile" onClick={() => setMobileOpen(false)}>
+              <ListItemIcon><PersonIcon /></ListItemIcon>
+              <ListItemText primary="Mon profil" slotProps={{ primary: { sx: { fontWeight: 700 } } }} />
+            </ListItemButton>
           </List>
         </>
       )}
@@ -307,7 +311,7 @@ export default function MainLayout() {
                   <MenuItem component={Link} to="/dashboard" onClick={() => setAnchorEl(null)}>
                     <DashboardIcon fontSize="small" style={{ marginRight: 10 }} /> Tableau de bord
                   </MenuItem>
-                  <MenuItem component={Link} to="/dashboard" onClick={() => setAnchorEl(null)}>
+                  <MenuItem component={Link} to="/dashboard/profile" onClick={() => setAnchorEl(null)}>
                     <PersonIcon fontSize="small" style={{ marginRight: 10 }} /> Mon profil
                   </MenuItem>
                   <Divider />
@@ -467,7 +471,7 @@ export default function MainLayout() {
             <BottomNavigationAction label="Recherche" icon={<SearchIcon />} component={Link} to="/search" />
             <BottomNavigationAction label="Vendre" icon={<AddIcon />} component={Link} to={PUBLISH_PATH} />
             <BottomNavigationAction label="Favoris" icon={<FavoriteIcon />} component={Link} to="/dashboard/favorites" />
-            <BottomNavigationAction label="Compte" icon={<PersonIcon />} component={Link} to={isAuthenticated ? '/dashboard' : '/login'} />
+            <BottomNavigationAction label="Compte" icon={<PersonIcon />} component={Link} to={isAuthenticated ? '/dashboard/profile' : '/login'} />
           </BottomNavigation>
         </Paper>
       )}

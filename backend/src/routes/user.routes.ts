@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { UserController } from '../controllers/user.controller';
 
 const router = Router();
+const controller = new UserController();
 
-router.get('/me', authMiddleware, (_req, res) => {
-  res.json({ message: 'Non implémenté' });
-});
+router.get('/me', authMiddleware, controller.getMe);
 
-router.put('/me', authMiddleware, (_req, res) => {
-  res.json({ message: 'Non implémenté' });
-});
+router.put('/me', authMiddleware, controller.updateMe);
+
+router.get('/me/dashboard', authMiddleware, controller.getDashboard);
 
 router.get('/:id', (_req, res) => {
   res.json({ message: 'Non implémenté' });

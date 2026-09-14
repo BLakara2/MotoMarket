@@ -10,6 +10,8 @@ const RegisterPage = lazy(() => import('../features/auth/pages/RegisterPage'));
 const ListingListPage = lazy(() => import('../features/listings/pages/ListingListPage'));
 const ListingDetailPage = lazy(() => import('../features/listings/pages/ListingDetailPage'));
 const CreateListingPage = lazy(() => import('../features/listings/pages/CreateListingPage'));
+const DashboardPage = lazy(() => import('../features/dashboard/pages/DashboardPage'));
+const ProfilePage = lazy(() => import('../features/profile/pages/ProfilePage'));
 const FavoritesPage = lazy(() => import('../features/favorites/pages/FavoritesPage'));
 const MessagesPage = lazy(() => import('../features/messages/pages/MessagesPage'));
 
@@ -68,7 +70,15 @@ export const router = createBrowserRouter([
         path: 'dashboard',
         element: (
           <Suspense fallback={<LoadingFallback />}>
-            <ListingListPage />
+            <DashboardPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'dashboard/profile',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <ProfilePage />
           </Suspense>
         ),
       },
